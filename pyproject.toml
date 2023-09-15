@@ -8,7 +8,11 @@ maintainers = [
   { name = "Lukas Turcani", email = "lukasturcani93@gmail.com" },
 ]
 
-dependencies = []
+dependencies = [
+  "sqlmodel",
+  "polars[connectorx,pyarrow]",
+  "nmrglue",
+]
 requires-python = ">=3.11"
 dynamic = ["version"]
 readme = "README.rst"
@@ -54,5 +58,7 @@ warn_unreachable = true
 disallow_any_generics = true
 
 [[tool.mypy.overrides]]
-module = []
+module = [
+  "nmrglue.*",
+]
 ignore_missing_imports = true
