@@ -1,5 +1,5 @@
-from cagey._internal.foo import Foo
+from cagey import nmr
 
 __all__ = [
-    "Foo",
+    "nmr",
 ]
