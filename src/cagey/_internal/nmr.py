@@ -50,6 +50,8 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
         session.commit()
 
         try:
+            # TODO: maybe - pick peaks twice so that 1e5 is used for aldehyde
+            # and imine peaks.
             peaks = tuple(_pick_peaks(spectrum_dir))
         except ZeroDivisionError:
             logger.error(

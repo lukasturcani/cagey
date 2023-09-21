@@ -33,6 +33,10 @@ dev = [
   "furo",
 ]
 
+[project.scripts]
+get-nmr-peaks = "cagey._internal.scripts.get_nmr_peaks:main"
+print-nmr-tables = "cagey._internal.scripts.print_nmr_tables:main"
+
 [project.urls]
 github = "https://github.com/lukasturcani/cagey"
 documentation = "https://cagey.readthedocs.io"
