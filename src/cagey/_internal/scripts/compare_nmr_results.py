@@ -23,13 +23,17 @@ def main() -> None:
                 NmrSpectrum.plate == row["Plate_Name"].replace("PLATE", "P"),
                 NmrSpectrum.formulation_number == row["Formulation_Number"],
             )
-            nmr_spectra = session.exec(statement).one_or_none()
-            if nmr_spectra is None:
+            nmr_spectrum = session.exec(statement).one_or_none()
+            if nmr_spectrum is None:
                 continue
-            has_imine = len(nmr_spectra.imine_peaks) > 0
+            has_imine = len(nmr_spectrum.imine_peaks) > 0
             assert row["Comp_Imine_Check"] == has_imine
-            has_aldehyde = len(nmr_spectra.aldehyde_peaks) > 0
+            has_aldehyde = len(nmr_spectrum.aldehyde_peaks) > 0
             assert row["Comp_Aldehyde_Check"] == has_aldehyde
+            print(
+                f"{nmr_spectrum.experiment} {nmr_spectrum.plate} "
+                f"{nmr_spectrum.formulation_number}"
+            )
 
 
 def _parse_args() -> argparse.Namespace:
