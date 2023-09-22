@@ -16,7 +16,7 @@ def main() -> None:
             continue
         formulation_number = int(title[title.rfind("-") + 1 :])
         spectrum_dir.joinpath("title").write_text(
-            f"{experiment},{plate},{formulation_number}"
+            f"{experiment},{plate},{formulation_number}".replace("P2B", "P4")
         )
 
 
