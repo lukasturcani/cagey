@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 import polars as pl
-from sqlmodel import create_engine, select
+from sqlmodel import Session, create_engine, select
 from sqlmodel.pool import StaticPool
 
 from cagey._internal.nmr import NmrSpectrum
@@ -16,11 +16,20 @@ def main() -> None:
         poolclass=StaticPool,
     )
     old_results = pl.read_csv(args.csv_results)
-    for row in old_results.rows(named=True):
-        nmr_spectrum = select(NmrSpectrum).where(
-            NmrSpectrum.experiment == row["Experiment_Name"],
-            NmrSpectrum.plate == row["Plate_Name"].replace("PLATE", "P"),
-        )
+    with Session(engine) as session:
+        for row in old_results.rows(named=True):
+            statement = select(NmrSpectrum).where(
+                NmrSpectrum.experiment == row["Experiment_Name"],
+                NmrSpectrum.plate == row["Plate_Name"].replace("PLATE", "P"),
+                NmrSpectrum.formulation_number == row["Formulation_Number"],
+            )
+            nmr_spectra = session.exec(statement).one_or_none()
+            if nmr_spectra is None:
+                continue
+            has_imine = len(nmr_spectra.imine_peaks) > 0
+            assert row["Comp_Imine_Check"] == has_imine
+            has_aldehyde = len(nmr_spectra.aldehyde_peaks) > 0
+            assert row["Comp_Aldehyde_Check"] == has_aldehyde
 
 
 def _parse_args() -> argparse.Namespace:

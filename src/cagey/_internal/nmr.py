@@ -6,7 +6,7 @@ from pathlib import Path
 
 import nmrglue
 import numpy as np
-from sqlmodel import Field, Session, SQLModel
+from sqlmodel import Field, Relationship, Session, SQLModel
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +18,18 @@ class NmrSpectrum(SQLModel, table=True):
     plate: str
     machine_expriment: str
     formulation_number: int
+    aldehyde_peaks: list["AldehydePeak"] = Relationship(
+        back_populates="nmr_spectrum",
+    )
+    imine_peaks: list["IminePeak"] = Relationship(
+        back_populates="nmr_spectrum"
+    )
 
 
 class AldehydePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
+    nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
     ppm: float
     amplitude: float
 
@@ -30,6 +37,7 @@ class AldehydePeak(SQLModel, table=True):
 class IminePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
+    nmr_spectrum: NmrSpectrum = Relationship(back_populates="imine_peaks")
     ppm: float
     amplitude: float
 
@@ -56,8 +64,6 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
             machine_expriment=spectrum_dir.parent.parent.name,
             formulation_number=formulation_number,
         )
-        session.add(nmr_spectrum)
-        session.commit()
 
         try:
             # TODO: maybe - pick peaks twice so that 1e5 is used for aldehyde
@@ -88,9 +94,9 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
             continue
         reference_shift = 7.26 - reference_peak.shift
         chloroform_peaks = [7.26, 7.52, 7.00]
-        session.add_all(
+        nmr_spectrum.aldehyde_peaks.extend(
             AldehydePeak(
-                nmr_spectrum_id=nmr_spectrum.id,
+                nmr_spectrum=nmr_spectrum,
                 ppm=peak.shift,
                 amplitude=peak.amplitude,
             )
@@ -98,9 +104,9 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
                 peaks, reference_shift, chloroform_peaks
             )
         )
-        session.add_all(
+        nmr_spectrum.imine_peaks.extend(
             IminePeak(
-                nmr_spectrum_id=nmr_spectrum.id,
+                nmr_spectrum=nmr_spectrum,
                 ppm=peak.shift,
                 amplitude=peak.amplitude,
             )
@@ -108,6 +114,7 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
                 peaks, reference_shift, chloroform_peaks
             )
         )
+        session.add(nmr_spectrum)
         if commit:
             session.commit()
 
