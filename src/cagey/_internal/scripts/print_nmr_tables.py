@@ -15,16 +15,21 @@ def main() -> None:
     )
     if args.verbose:
         pl.Config.set_tbl_rows(-1)
-    nmr_specta = pl.read_database(
-        "SELECT * FROM nmrspectrum", engine.connect()
-    )
-    print(nmr_specta)
-    aldehyde_peaks = pl.read_database(
-        "SELECT * FROM aldehydepeak", engine.connect()
-    )
-    print(aldehyde_peaks)
-    imine_peaks = pl.read_database("SELECT * FROM iminepeak", engine.connect())
-    print(imine_peaks)
+    if "nmr" in args.tables:
+        nmr_specta = pl.read_database(
+            "SELECT * FROM nmrspectrum", engine.connect()
+        )
+        print(nmr_specta)
+    if "aldehyde" in args.tables:
+        aldehyde_peaks = pl.read_database(
+            "SELECT * FROM aldehydepeak", engine.connect()
+        )
+        print(aldehyde_peaks)
+    if "imine" in args.tables:
+        imine_peaks = pl.read_database(
+            "SELECT * FROM iminepeak", engine.connect()
+        )
+        print(imine_peaks)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -35,6 +40,13 @@ def _parse_args() -> argparse.Namespace:
         "--verbose",
         action="store_true",
         help="print the full dataframe",
+    )
+    parser.add_argument(
+        "-t",
+        "--tables",
+        choices=["nmr", "aldehyde", "imine"],
+        nargs="*",
+        default=["nmr", "aldehyde", "imine"],
     )
     return parser.parse_args()
 

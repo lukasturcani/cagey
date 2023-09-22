@@ -17,6 +17,7 @@ class NmrSpectrum(SQLModel, table=True):
     experiment: str
     plate: str
     machine_expriment: str
+    formulation_number: int
 
 
 class AldehydePeak(SQLModel, table=True):
@@ -36,15 +37,24 @@ class IminePeak(SQLModel, table=True):
 def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
     for spectrum in nmr_path.glob("**/pdata/1/1r"):
         spectrum_dir = spectrum.parent
-        title = spectrum_dir.joinpath("title").read_text()
-        machine_expriment = spectrum_dir.parent.parent
-        plate = machine_expriment.parent
-        experiment = plate.parent
+        try:
+            title = spectrum_dir.joinpath("title").read_text()
+            experiment, plate, formulation_number_ = title.split(",")
+            formulation_number = int(formulation_number_)
+        except ValueError:
+            logger.error(
+                "reading %s failed because of bad title %s",
+                spectrum_dir,
+                title,
+            )
+            continue
+
         nmr_spectrum = NmrSpectrum(
             title=title,
-            experiment=experiment.name,
-            plate=plate.name,
-            machine_expriment=machine_expriment.name,
+            experiment=experiment,
+            plate=plate,
+            machine_expriment=spectrum_dir.parent.parent.name,
+            formulation_number=formulation_number,
         )
         session.add(nmr_spectrum)
         session.commit()
