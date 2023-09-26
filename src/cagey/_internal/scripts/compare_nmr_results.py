@@ -20,10 +20,11 @@ def main() -> None:
     not_missing = 0
     with Session(engine) as session:
         for row in old_results.rows(named=True):
-            if "PLATE2B" in row["Plate_Name"]:
-                plate = "P4"
-            else:
-                plate = row["Plate_Name"].replace("PLATE", "P")
+            plate = (
+                "P4"
+                if "PLATE2B" in row["Plate_Name"]
+                else row["Plate_Name"].replace("PLATE", "P")
+            )
             statement = select(NmrSpectrum).where(
                 NmrSpectrum.experiment == row["Experiment_Name"],
                 NmrSpectrum.plate == plate,
