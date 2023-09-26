@@ -74,7 +74,10 @@ def add_precursors(session: Session, commit: bool = True) -> None:
         "TriN": "O=Cc1ccccc1-c1cc(-c2ccccc2C=O)cc(-c2ccccc2C=O)c1",
         "TriO": "O=Cc1cc(-c2cc(-c3csc(C=O)c3)cc(-c3csc(C=O)c3)c2)cs1",
         "TriP": "O=Cc1ccc(-c2cc(-c3ccc(C=O)o3)cc(-c3ccc(C=O)o3)c2)o1",
-        "TriQ": "O=CC=Cc1ccc(-c2cc(-c3ccc(C=CC=O)cc3)cc(-c3ccc(C=CC=O)cc3)c2)cc1",
+        "TriQ": (
+            "O=CC=Cc1ccc(-c2cc(-c3ccc(C=CC=O)cc3)"
+            "cc(-c3ccc(C=CC=O)cc3)c2)cc1"
+        ),
         "TriR": "O=Cc1ccc(OCc2cc(COc3ccc(C=O)cc3)cc(COc3ccc(C=O)cc3)c2)cc1",
         "TriS": "O=Cc1ccc(C#Cc2cc(C=O)cc(C=O)c2)cc1",
         "TriT": "O=Cc1c(O)c(C=O)c(O)c(C=O)c1O",
