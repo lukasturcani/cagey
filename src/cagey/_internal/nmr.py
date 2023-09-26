@@ -6,12 +6,22 @@ from pathlib import Path
 
 import nmrglue
 import numpy as np
-from sqlmodel import Field, Relationship, Session, SQLModel
+from sqlmodel import Field, Relationship, Session, SQLModel, UniqueConstraint
 
 logger = logging.getLogger(__name__)
 
 
 class NmrSpectrum(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "title",
+            "experiment",
+            "plate",
+            "machine_expriment",
+            "formulation_number",
+        ),
+    )
+
     id: int | None = Field(default=None, primary_key=True)
     title: str
     experiment: str
@@ -29,17 +39,17 @@ class NmrSpectrum(SQLModel, table=True):
 class AldehydePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
     ppm: float
     amplitude: float
+    nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
 
 
 class IminePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    nmr_spectrum: NmrSpectrum = Relationship(back_populates="imine_peaks")
     ppm: float
     amplitude: float
+    nmr_spectrum: NmrSpectrum = Relationship(back_populates="imine_peaks")
 
 
 def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:

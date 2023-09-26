@@ -30,6 +30,16 @@ def main() -> None:
             "SELECT * FROM iminepeak", engine.connect()
         )
         print(imine_peaks)
+    if "precursor" in args.tables:
+        precursors = pl.read_database(
+            "SELECT * FROM precursor", engine.connect()
+        )
+        print(precursors)
+    if "reaction" in args.tables:
+        reactions = pl.read_database(
+            "SELECT * FROM reaction", engine.connect()
+        )
+        print(reactions)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -44,9 +54,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-t",
         "--tables",
-        choices=["nmr", "aldehyde", "imine"],
+        choices=["nmr", "aldehyde", "imine", "precursor", "reaction"],
         nargs="*",
-        default=["nmr", "aldehyde", "imine"],
+        default=["nmr", "aldehyde", "imine", "precursor", "reaction"],
     )
     return parser.parse_args()
 
