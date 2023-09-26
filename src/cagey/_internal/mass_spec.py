@@ -6,6 +6,16 @@ from sqlmodel import Session
 
 
 def add_data(session: Session, commit: bool = True) -> None:
+    adducts = (
+        EmpiricalFormula("H"),
+        EmpiricalFormula("H2"),
+        EmpiricalFormula("H3"),
+        EmpiricalFormula("K"),
+        EmpiricalFormula("Na"),
+        EmpiricalFormula("NH4"),
+    )
+    charges = (1, 2, 3, 4)
+
     if commit:
         session.commit()
 
