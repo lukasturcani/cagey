@@ -1,0 +1,158 @@
+from collections.abc import Iterable
+from itertools import product
+
+from sqlmodel import Field, Session, SQLModel, UniqueConstraint
+
+
+class Precursor(SQLModel, table=True):
+    name: str = Field(primary_key=True)
+    smiles: str
+
+
+class Reaction(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("experiment", "plate", "formulation_number"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    experiment: str
+    plate: str
+    formulation_number: int
+    amine: str = Field(foreign_key="precursor.name")
+    aldehyde: str = Field(foreign_key="precursor.name")
+
+
+def add_precursors(session: Session, commit: bool = True) -> None:
+    precursors = {
+        "Di1": "O=Cc1cccc(C=O)c1",
+        "Di2": "CC(C)(C)c1cc(C=O)c(O)c(C=O)c1",
+        "Di3": "O=Cc1cc2sc(C=O)cc2s1",
+        "Di4": "O=Cc1ccc(C=O)cc1",
+        "Di5": "O=Cc1c(F)c(F)c(C=O)c(F)c1F",
+        "Di6": "O=Cc1ccc(-c2ccc(C=O)cc2)cc1",
+        "Di7": "O=Cc1c2ccccc2c(C=O)c2ccccc12",
+        "Di8": "O=Cc1ccc2ccc3ccc(C=O)nc3c2n1",
+        "Di9": "O=Cc1ccsc1C=O",
+        "Di10": "O=Cc1ccccc1C=O",
+        "Di11": "Cn1nc(-c2ccc(C=O)cc2)cc1C=O",
+        "Di12": "CC(C=O)=Cc1ccc(C=C(C)C=O)cc1",
+        "Di13": "COc1cc(C=O)ccc1OCCOc1ccc(C=O)cc1OC",
+        "Di14": "Cn1nc2c(C=O)cccc2c1C=O",
+        "Di15": "O=Cc1ccc(OCCCOc2ccc(C=O)cc2)cc1",
+        "Di16": "CCCCC(CC)COc1cc(C=O)c(OC)cc1C=O",
+        "Di17": "NCCN",
+        "Di18": "CC(C)(CN)CN",
+        "Di19": "N[C@H]1CN(Cc2ccccc2)C[C@@H]1N",
+        "Di20": "N[C@H]([C@H](C1=CC=CC=C1)N)C2=CC=CC=C2",
+        "Di21": "Nc1ccc(Oc2ccc(N)cc2)cc1",
+        "Di22": "NC1=NON=C1N",
+        "Di23": "N[C@H]1CCC[C@H](C1)N",
+        "Di24": "N[C@@H]1[C@H](CCCC1)N",
+        "Di25": "NCCCCCCNCCCCCCN",
+        "Di26": "NCCCCCCN",
+        "Di27": "NCc1ccc(CN)cc1",
+        "Di28": "NCC1CCC(CN)CC1",
+        "Di29": "CN(CCCN)CCCN",
+        "Di30": "NCCOCCN",
+        "Di31": "NCC1=CC(CN)=CC=C1",
+        "Di32": "NCC(CN)O",
+        "Di33": "NCCCC[C@H](N)C(=O)O",
+        "Di34": "N[C@H]1CC[C@H](N)CC1",
+        "TriA": "Nc1nc(N)nc(N)n1",
+        "TriB": "Cc1c(CN)c(C)c(CN)c(C)c1CN",
+        "TriC": "NCCN(CCN)CCN",
+        "TriD": "CCc1c(CN)c(CC)c(CN)c(CC)c1CN",
+        "TriE": "NCCCN(CCCN)CCCN",
+        "TriF": "NC1CC(N)CC(N)C1",
+        "TriG": "O=Cc1cc(C=O)cc(C=O)c1",
+        "TriH": "O=Cc1ccc(-c2cc(-c3ccc(C=O)cc3)cc(-c3ccc(C=O)cc3)c2)cc1",
+        "TriI": "O=Cc1cc(C=O)c(O)c(C=O)c1",
+        "TriJ": "O=Cc1ccc(N(c2ccc(C=O)cc2)c2ccc(C=O)cc2)cc1",
+        "TriK": "O=Cc1ccc(-c2nc(-c3ccc(C=O)cc3)nc(-c3ccc(C=O)cc3)n2)cc1",
+        "TriL": "O=Cc1ccc(C#Cc2cc(C#Cc3ccc(C=O)cc3)cc(C#Cc3ccc(C=O)cc3)c2)cc1",
+        "TriM": "O=Cc1cccc(-c2cc(-c3cccc(C=O)c3)cc(-c3cccc(C=O)c3)c2)c1",
+        "TriN": "O=Cc1ccccc1-c1cc(-c2ccccc2C=O)cc(-c2ccccc2C=O)c1",
+        "TriO": "O=Cc1cc(-c2cc(-c3csc(C=O)c3)cc(-c3csc(C=O)c3)c2)cs1",
+        "TriP": "O=Cc1ccc(-c2cc(-c3ccc(C=O)o3)cc(-c3ccc(C=O)o3)c2)o1",
+        "TriQ": "O=CC=Cc1ccc(-c2cc(-c3ccc(C=CC=O)cc3)cc(-c3ccc(C=CC=O)cc3)c2)cc1",
+        "TriR": "O=Cc1ccc(OCc2cc(COc3ccc(C=O)cc3)cc(COc3ccc(C=O)cc3)c2)cc1",
+        "TriS": "O=Cc1ccc(C#Cc2cc(C=O)cc(C=O)c2)cc1",
+        "TriT": "O=Cc1c(O)c(C=O)c(O)c(C=O)c1O",
+        "TriU": "O=Cc1ccc(C=Cc2cc(C=Cc3ccc(C=O)cc3)cc(C=Cc3ccc(C=O)cc3)c2)cc1",
+    }
+    session.add_all(
+        Precursor(name=name, smiles=smiles)
+        for name, smiles in precursors.items()
+    )
+    if commit:
+        session.commit()
+
+
+def add_ab_02_005_data(
+    session: Session,
+    commit: bool = True,
+) -> None:
+    _add_ab_02_005_data_helper(
+        amines=("Di1", "Di2", "Di3", "Di4", "Di5", "Di6", "Di7", "Di8"),
+        aldehydes=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
+        plate="P1",
+        session=session,
+    )
+    _add_ab_02_005_data_helper(
+        amines=(
+            "Di17",
+            "Di18",
+            "Di19",
+            "Di20",
+            "Di21",
+            "Di22",
+            "Di23",
+            "Di24",
+        ),
+        aldehydes=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriL"),
+        plate="P2",
+        session=session,
+    )
+    _add_ab_02_005_data_helper(
+        amines=("Di9", "Di10", "Di11", "Di12", "Di13", "Di14", "Di15", "Di16"),
+        aldehydes=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
+        plate="P3",
+        session=session,
+    )
+    _add_ab_02_005_data_helper(
+        amines=(
+            "Di17",
+            "Di18",
+            "Di19",
+            "Di20",
+            "Di21",
+            "Di22",
+            "Di23",
+            "Di24",
+        ),
+        aldehydes=("TriM", "TriN", "TriO", "TriP", "TriQ", "TriR"),
+        plate="P4",
+        session=session,
+    )
+    if commit:
+        session.commit()
+
+
+def _add_ab_02_005_data_helper(
+    amines: Iterable[str],
+    aldehydes: Iterable[str],
+    plate: str,
+    session: Session,
+) -> None:
+    session.add_all(
+        Reaction(
+            experiment="AB-02-005",
+            plate=plate,
+            formulation_number=(amine_index + 1) + (aldehyde_index * 8),
+            amine=amine,
+            aldehyde=aldehyde,
+        )
+        for (amine_index, amine), (aldehyde_index, aldehyde) in product(
+            enumerate(amines), enumerate(aldehydes)
+        )
+    )

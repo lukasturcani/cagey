@@ -1,5 +1,6 @@
-from cagey import nmr
+from cagey import nmr, reactions
 
 __all__ = [
     "nmr",
+    "reactions",
 ]
