@@ -1,7 +1,6 @@
 import argparse
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from operator import attrgetter
 from pathlib import Path
 from typing import Protocol
 
