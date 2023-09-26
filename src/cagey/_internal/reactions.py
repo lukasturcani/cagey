@@ -92,13 +92,14 @@ def add_ab_02_005_data(
     session: Session,
     commit: bool = True,
 ) -> None:
-    _add_ab_02_005_data_helper(
+    _add_data_helper(
         amines=("Di1", "Di2", "Di3", "Di4", "Di5", "Di6", "Di7", "Di8"),
         aldehydes=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
+        experiment="AB-02-005",
         plate="P1",
         session=session,
     )
-    _add_ab_02_005_data_helper(
+    _add_data_helper(
         amines=(
             "Di17",
             "Di18",
@@ -110,16 +111,18 @@ def add_ab_02_005_data(
             "Di24",
         ),
         aldehydes=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriL"),
+        experiment="AB-02-005",
         plate="P2",
         session=session,
     )
-    _add_ab_02_005_data_helper(
+    _add_data_helper(
         amines=("Di9", "Di10", "Di11", "Di12", "Di13", "Di14", "Di15", "Di16"),
         aldehydes=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
+        experiment="AB-02-005",
         plate="P3",
         session=session,
     )
-    _add_ab_02_005_data_helper(
+    _add_data_helper(
         amines=(
             "Di17",
             "Di18",
@@ -131,6 +134,7 @@ def add_ab_02_005_data(
             "Di24",
         ),
         aldehydes=("TriM", "TriN", "TriO", "TriP", "TriQ", "TriR"),
+        experiment="AB-02-005",
         plate="P4",
         session=session,
     )
@@ -138,21 +142,93 @@ def add_ab_02_005_data(
         session.commit()
 
 
-def _add_ab_02_005_data_helper(
+def add_ab_02_007_data(session: Session, commit: bool = True) -> None:
+    _add_data_helper(
+        amines=(
+            "Di18",
+            "Di19",
+            "Di20",
+            "Di22",
+            "Di23",
+            "Di24",
+            "Di25",
+            "Di26",
+        ),
+        aldehydes=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
+        experiment="AB-02-007",
+        plate="P1",
+        session=session,
+    )
+    _add_data_helper(
+        amines=(
+            "Di27",
+            "Di28",
+            "Di29",
+            "Di30",
+            "Di31",
+            "Di32",
+            "Di33",
+            "Di34",
+        ),
+        aldehydes=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
+        experiment="AB-02-007",
+        plate="P2",
+        session=session,
+    )
+    _add_data_helper(
+        amines=(
+            "Di18",
+            "Di19",
+            "Di20",
+            "Di22",
+            "Di23",
+            "Di24",
+            "Di25",
+            "Di26",
+        ),
+        aldehydes=("TriS", "TriT", "TriU"),
+        experiment="AB-02-007",
+        plate="P3",
+        session=session,
+    )
+    _add_data_helper(
+        amines=(
+            "Di27",
+            "Di28",
+            "Di29",
+            "Di30",
+            "Di31",
+            "Di32",
+            "Di33",
+            "Di34",
+        ),
+        aldehydes=("TriS", "TriT", "TriU"),
+        experiment="AB-02-007",
+        plate="P3",
+        session=session,
+        start_aldehyde_index=3,
+    )
+    if commit:
+        session.commit()
+
+
+def _add_data_helper(
     amines: Iterable[str],
     aldehydes: Iterable[str],
+    experiment: str,
     plate: str,
     session: Session,
+    start_aldehyde_index: int = 0,
 ) -> None:
     session.add_all(
         Reaction(
-            experiment="AB-02-005",
+            experiment=experiment,
             plate=plate,
             formulation_number=(amine_index + 1) + (aldehyde_index * 8),
             amine=amine,
             aldehyde=aldehyde,
         )
         for (amine_index, amine), (aldehyde_index, aldehyde) in product(
-            enumerate(amines), enumerate(aldehydes)
+            enumerate(amines), enumerate(aldehydes, start_aldehyde_index)
         )
     )

@@ -19,6 +19,7 @@ def main() -> None:
     with Session(engine) as session:
         cagey.reactions.add_precursors(session)
         cagey.reactions.add_ab_02_005_data(session)
+        cagey.reactions.add_ab_02_007_data(session)
 
 
 def _parse_args() -> argparse.Namespace:
