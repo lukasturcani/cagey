@@ -12,6 +12,8 @@ dependencies = [
   "sqlmodel",
   "polars[connectorx,pyarrow]",
   "nmrglue",
+  "pyopenms",
+  "rdkit",
 ]
 requires-python = ">=3.11"
 dynamic = ["version"]
@@ -69,5 +71,6 @@ disallow_any_generics = true
 [[tool.mypy.overrides]]
 module = [
   "nmrglue.*",
+  "rdkit.*",
 ]
 ignore_missing_imports = true
