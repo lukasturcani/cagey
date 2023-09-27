@@ -28,15 +28,15 @@ class NmrSpectrum(SQLModel, table=True):
     plate: str
     machine_expriment: str
     formulation_number: int
-    aldehyde_peaks: list["AldehydePeak"] = Relationship(
+    aldehyde_peaks: list["NmrAldehydePeak"] = Relationship(
         back_populates="nmr_spectrum",
     )
-    imine_peaks: list["IminePeak"] = Relationship(
+    imine_peaks: list["NmrIminePeak"] = Relationship(
         back_populates="nmr_spectrum"
     )
 
 
-class AldehydePeak(SQLModel, table=True):
+class NmrAldehydePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
     ppm: float
@@ -44,7 +44,7 @@ class AldehydePeak(SQLModel, table=True):
     nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
 
 
-class IminePeak(SQLModel, table=True):
+class NmrIminePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
     ppm: float
@@ -103,7 +103,7 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
         reference_shift = 7.26 - reference_peak.shift
         chloroform_peaks = [7.26, 7.52, 7.00]
         nmr_spectrum.aldehyde_peaks.extend(
-            AldehydePeak(
+            NmrAldehydePeak(
                 nmr_spectrum=nmr_spectrum,
                 ppm=peak.shift,
                 amplitude=peak.amplitude,
@@ -113,7 +113,7 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
             )
         )
         nmr_spectrum.imine_peaks.extend(
-            IminePeak(
+            NmrIminePeak(
                 nmr_spectrum=nmr_spectrum,
                 ppm=peak.shift,
                 amplitude=peak.amplitude,

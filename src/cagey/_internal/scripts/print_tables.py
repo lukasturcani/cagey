@@ -16,10 +16,10 @@ def main() -> None:
     if args.verbose:
         pl.Config.set_tbl_rows(-1)
     if "nmr" in args.tables:
-        nmr_specta = pl.read_database(
+        nmr_spectra = pl.read_database(
             "SELECT * FROM nmrspectrum", engine.connect()
         )
-        print(nmr_specta)
+        print(nmr_spectra)
     if "aldehyde" in args.tables:
         aldehyde_peaks = pl.read_database(
             "SELECT * FROM aldehydepeak", engine.connect()
@@ -40,6 +40,21 @@ def main() -> None:
             "SELECT * FROM reaction", engine.connect()
         )
         print(reactions)
+    if "mass_spec" in args.tables:
+        mass_spec = pl.read_database(
+            "SELECT * FROM massspectrum", engine.connect()
+        )
+        print(mass_spec)
+    if "corrected_mass_spec_peak" in args.tables:
+        corrected_mass_spec_peaks = pl.read_database(
+            "SELECT * FROM correctedmassspecpeak", engine.connect()
+        )
+        print(corrected_mass_spec_peaks)
+    if "mass_spec_peak" in args.tables:
+        mass_spec_peaks = pl.read_database(
+            "SELECT * FROM massspecpeak", engine.connect()
+        )
+        print(mass_spec_peaks)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -54,9 +69,27 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-t",
         "--tables",
-        choices=["nmr", "aldehyde", "imine", "precursor", "reaction"],
+        choices=[
+            "nmr",
+            "aldehyde",
+            "imine",
+            "precursor",
+            "reaction",
+            "mass_spec",
+            "corrected_mass_spec_peak",
+            "mass_spec_peak",
+        ],
         nargs="*",
-        default=["nmr", "aldehyde", "imine", "precursor", "reaction"],
+        default=[
+            "nmr",
+            "aldehyde",
+            "imine",
+            "precursor",
+            "reaction",
+            "mass_spec",
+            "corrected_mass_spec_peak",
+            "mass_spec_peak",
+        ],
     )
     return parser.parse_args()
 

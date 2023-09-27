@@ -8,7 +8,16 @@ from typing import Any
 import polars as pl
 import rdkit.Chem.AllChem as rdkit
 from pyopenms import EmpiricalFormula
-from sqlmodel import Field, Session, SQLModel, and_, or_, select
+from sqlmodel import (
+    Field,
+    Relationship,
+    Session,
+    SQLModel,
+    UniqueConstraint,
+    and_,
+    or_,
+    select,
+)
 
 from cagey._internal.reactions import Precursor as PrecursorTable
 from cagey._internal.reactions import Reaction
@@ -16,7 +25,24 @@ from cagey._internal.reactions import Reaction
 logger = logging.getLogger(__name__)
 
 
+class MassSpectrum(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("experiment", "plate", "formulation_number"),
+    )
+    id: int | None = Field(default=None, primary_key=True)
+    experiment: str
+    plate: str
+    formulation_number: int
+
+    corrected_peaks: list["CorrectedMassSpecPeak"] = Relationship(
+        back_populates="mass_spectrum"
+    )
+    peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
+
+
 class CorrectedMassSpecPeak(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
     di_count: int
     tri_count: int
     adduct: str
@@ -28,8 +54,14 @@ class CorrectedMassSpecPeak(SQLModel, table=True):
     corrected_mz: float
     intensity: float
 
+    mass_spectrum: MassSpectrum = Relationship(
+        back_populates="corrected_peaks",
+    )
+
 
 class MassSpecPeak(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
     di_count: int
     tri_count: int
     adduct: str
@@ -39,6 +71,10 @@ class MassSpecPeak(SQLModel, table=True):
     calculated_mz: float
     spectrum_mz: float
     intensity: float
+
+    mass_spectrum: MassSpectrum = Relationship(
+        back_populates="peaks",
+    )
 
 
 def add_data(
@@ -66,7 +102,6 @@ def add_data(
     paths = tuple(mass_spec_path.glob("**/*_Processed.csv"))
     query = select(Reaction).where(or_(*map(_get_reaction_filter, paths)))
     reactions = session.exec(query).all()
-    mass_spec_peaks: list[MassSpecPeak | CorrectedMassSpecPeak] = []
     for reaction_data in _get_reaction_data(paths, reactions):
         try:
             peaks = pl.read_csv(reaction_data.path).filter(
@@ -75,6 +110,12 @@ def add_data(
         except pl.NoDataError:
             logger.error("%s is empty", reaction_data.path)
             continue
+
+        mass_spectrum = MassSpectrum(
+            experiment=reaction_data.reaction.experiment,
+            plate=reaction_data.reaction.plate,
+            formulation_number=reaction_data.reaction.formulation_number,
+        )
 
         di_formula = _get_precursor_formula(
             session, reaction_data.reaction.di_name
@@ -101,7 +142,7 @@ def add_data(
                 )
             )
             if corrected_peaks.is_empty():
-                mass_spec_peaks.append(
+                mass_spectrum.peaks.append(
                     MassSpecPeak(
                         di_count=di_count,
                         tri_count=tri_count,
@@ -115,7 +156,7 @@ def add_data(
                     )
                 )
             else:
-                mass_spec_peaks.append(
+                mass_spectrum.corrected_peaks.append(
                     CorrectedMassSpecPeak(
                         di_count=di_count,
                         tri_count=tri_count,
@@ -129,6 +170,7 @@ def add_data(
                         intensity=cage_peak["height"],
                     )
                 )
+        session.add(mass_spectrum)
 
     if commit:
         session.commit()
