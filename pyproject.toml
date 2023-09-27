@@ -42,6 +42,7 @@ compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
 compare-nmr-peaks = "cagey._internal.scripts.compare_nmr_peaks:main"
 normalize-nmr-directory = "cagey._internal.scripts.normalize_nmr_directory:main"
 add-reactions = "cagey._internal.scripts.add_reactions:main"
+add-mass-spec = "cagey._internal.scripts.add_mass_spec:main"
 
 [project.urls]
 github = "https://github.com/lukasturcani/cagey"
