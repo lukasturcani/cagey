@@ -128,18 +128,16 @@ def add_data(
         ):
             di = Precursor(di_formula, di_count, 2)
             tri = Precursor(tri_formula, tri_count, 3)
-            cage_weight = _get_cage_weight(di, tri, adduct, charge)
+            cage_mz = _get_cage_mz(di, tri, adduct, charge)
             cage_peaks = peaks.filter(
-                pl.col("mz").is_between(cage_weight - 0.1, cage_weight + 0.1)
+                pl.col("mz").is_between(cage_mz - 0.1, cage_mz + 0.1)
             )
             if cage_peaks.is_empty():
                 continue
             cage_peak = cage_peaks.row(0, named=True)
-            corrected_weight = cage_peak["mz"] + h_mono_weight / charge
+            corrected_mz = cage_peak["mz"] + h_mono_weight / charge
             corrected_peaks = peaks.filter(
-                pl.col("mz").is_between(
-                    corrected_weight - 0.1, corrected_weight + 0.1
-                )
+                pl.col("mz").is_between(corrected_mz - 0.1, corrected_mz + 0.1)
             )
             if corrected_peaks.is_empty():
                 mass_spectrum.peaks.append(
@@ -150,7 +148,7 @@ def add_data(
                         charge=charge,
                         di_name=reaction_data.reaction.di_name,
                         tri_name=reaction_data.reaction.tri_name,
-                        calculated_mz=cage_weight,
+                        calculated_mz=cage_mz,
                         spectrum_mz=cage_peak["mz"],
                         intensity=cage_peak["height"],
                     )
@@ -164,7 +162,7 @@ def add_data(
                         charge=charge,
                         di_name=reaction_data.reaction.di_name,
                         tri_name=reaction_data.reaction.tri_name,
-                        calculated_mz=cage_weight,
+                        calculated_mz=cage_mz,
                         spectrum_mz=cage_peak["mz"],
                         corrected_mz=corrected_peaks.row(0, named=True)["mz"],
                         intensity=cage_peak["height"],
@@ -245,7 +243,7 @@ class Precursor:
     num_functional_groups: int
 
 
-def _get_cage_weight(
+def _get_cage_mz(
     di: Precursor,
     tri: Precursor,
     adduct: EmpiricalFormula,
