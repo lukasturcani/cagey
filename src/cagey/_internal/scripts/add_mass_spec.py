@@ -17,6 +17,7 @@ def main() -> None:
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         cagey.mass_spec.add_data(args.mass_spec_directory, session)
+        cagey.mass_spec.add_topology_assignments(session)
 
 
 def _parse_args() -> argparse.Namespace:

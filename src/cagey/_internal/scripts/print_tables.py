@@ -55,6 +55,11 @@ def main() -> None:
             "SELECT * FROM massspecpeak", engine.connect()
         )
         print(mass_spec_peaks)
+    if "mass_spec_topology" in args.tables:
+        mass_spec_topology_assignments = pl.read_database(
+            "SELECT * FROM massspectopologyassignment", engine.connect()
+        )
+        print(mass_spec_topology_assignments)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -78,6 +83,7 @@ def _parse_args() -> argparse.Namespace:
             "mass_spec",
             "corrected_mass_spec_peak",
             "mass_spec_peak",
+            "mass_spec_topology",
         ],
         nargs="*",
         default=[
@@ -89,6 +95,7 @@ def _parse_args() -> argparse.Namespace:
             "mass_spec",
             "corrected_mass_spec_peak",
             "mass_spec_peak",
+            "mass_spec_topology",
         ],
     )
     return parser.parse_args()

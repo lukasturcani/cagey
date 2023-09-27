@@ -15,6 +15,7 @@ from sqlmodel import (
     SQLModel,
     UniqueConstraint,
     and_,
+    not_,
     or_,
     select,
 )
@@ -58,6 +59,14 @@ class CorrectedMassSpecPeak(SQLModel, table=True):
         back_populates="corrected_peaks",
     )
 
+    def get_ppm_error(self) -> float:
+        return abs(
+            (self.calculated_mz - self.spectrum_mz) / self.calculated_mz * 1e6
+        )
+
+    def get_separation(self) -> float:
+        return self.corrected_mz - self.spectrum_mz
+
 
 class MassSpecPeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -77,18 +86,29 @@ class MassSpecPeak(SQLModel, table=True):
     )
 
 
+class MassSpecTopologyAssignment(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    mass_spec_peak_id: int = Field(foreign_key="massspecpeak.id")
+    topology: str
+
+
 def add_data(
     mass_spec_path: Path,
     session: Session,
     commit: bool = True,
 ) -> None:
     adducts = (
-        EmpiricalFormula("H"),
+        EmpiricalFormula("H1"),
         EmpiricalFormula("H2"),
         EmpiricalFormula("H3"),
-        EmpiricalFormula("K"),
-        EmpiricalFormula("Na"),
-        EmpiricalFormula("NH4"),
+        EmpiricalFormula("H3"),
+        EmpiricalFormula("K1"),
+        EmpiricalFormula("K2"),
+        EmpiricalFormula("K3"),
+        EmpiricalFormula("Na1"),
+        EmpiricalFormula("Na2"),
+        EmpiricalFormula("Na3"),
+        EmpiricalFormula("N1H4"),
     )
     charges = (1, 2, 3, 4)
     precursor_counts = (
@@ -98,6 +118,8 @@ def add_data(
         (6, 9),
         (8, 12),
     )
+    charge1_banned_adducts = {"H2", "K2", "Na2", "H3", "K3", "Na3"}
+    charge2_banned_adducts = {"H1", "H3", "K1", "K3", "Na1", "Na3"}
     h_mono_weight = EmpiricalFormula("H").getMonoWeight()
     paths = tuple(mass_spec_path.glob("**/*_Processed.csv"))
     query = select(Reaction).where(or_(*map(_get_reaction_filter, paths)))
@@ -126,6 +148,17 @@ def add_data(
         for adduct, charge, (di_count, tri_count) in product(
             adducts, charges, precursor_counts
         ):
+            if (
+                charge == 1
+                and str(adduct.toString()) in charge1_banned_adducts
+            ):
+                continue
+            if (
+                charge == 2
+                and str(adduct.toString()) in charge2_banned_adducts
+            ):
+                continue
+
             di = Precursor(di_formula, di_count, 2)
             tri = Precursor(tri_formula, tri_count, 3)
             cage_mz = _get_cage_mz(di, tri, adduct, charge)
@@ -169,6 +202,28 @@ def add_data(
                     )
                 )
         session.add(mass_spectrum)
+
+    if commit:
+        session.commit()
+
+
+def add_topology_assignments(
+    session: Session,
+    commit: bool = True,
+) -> None:
+    query = select(CorrectedMassSpecPeak).where(
+        not_(
+            and_(
+                CorrectedMassSpecPeak.tri_count == 3,
+                CorrectedMassSpecPeak.di_count == 5,
+            )
+        ),
+        or_(
+            CorrectedMassSpecPeak.charge == 1,
+            CorrectedMassSpecPeak.charge == 2,
+        ),
+    )
+    session.add_all(_assign_cage_topology(session.exec(query)))
 
     if commit:
         session.commit()
@@ -263,20 +318,42 @@ def _get_cage_mz(
     return cage_weight / charge
 
 
-def _get_cage_formula(
-    di: Precursor,
-    tri: Precursor,
-) -> str:
-    water = EmpiricalFormula("H2O")
-    num_imine_bonds = min(
-        di.count * di.num_functional_groups,
-        tri.count * tri.num_functional_groups,
-    )
-    formula = EmpiricalFormula("")
-    for _ in range(di.count):
-        formula += di.formula
-    for _ in range(tri.count):
-        formula += tri.formula
-    for _ in range(num_imine_bonds):
-        formula -= water
-    return str(formula.toString())
+def _assign_cage_topology(
+    peaks: Iterable[CorrectedMassSpecPeak],
+) -> Iterator[MassSpecTopologyAssignment]:
+    possible_assignmnets = []
+    seen_topologies = set()
+    has_four_plus_six = False
+    has_double_charged_2_plus_3 = False
+    has_single_charged_2_plus_3 = False
+    for peak in peaks:
+        if (
+            peak.get_ppm_error() < 10
+            and abs(peak.get_separation() - 1 / peak.charge) < 0.02
+        ):
+            topology = f"{peak.tri_count}+{peak.di_count}"
+            if topology == "4+6":
+                has_four_plus_six = True
+            if topology == "2+3" and peak.charge == 1:
+                has_single_charged_2_plus_3 = True
+            if topology == "2+3" and peak.charge == 2:
+                has_double_charged_2_plus_3 = True
+
+            if topology not in seen_topologies:
+                possible_assignmnets.append(
+                    MassSpecTopologyAssignment(
+                        mass_spec_peak_id=peak.id,
+                        topology=topology,
+                    )
+                )
+                seen_topologies.add(topology)
+
+    for topology_assignment in possible_assignmnets:
+        if (
+            has_four_plus_six
+            and has_single_charged_2_plus_3
+            and not has_double_charged_2_plus_3
+            and topology_assignment.topology == "2+3"
+        ):
+            continue
+        yield topology_assignment
