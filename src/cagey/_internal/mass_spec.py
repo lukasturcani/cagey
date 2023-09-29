@@ -1,6 +1,7 @@
 import logging
+from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -318,42 +319,60 @@ def _get_cage_mz(
     return cage_weight / charge
 
 
+@dataclass(slots=True)
+class PossibleAssignments:
+    topologies: list[MassSpecTopologyAssignment] = field(default_factory=list)
+    has_four_plus_six: bool = False
+    has_single_charged_2_plus_3: bool = False
+    has_double_charged_2_plus_3: bool = False
+
+
 def _assign_cage_topology(
     peaks: Iterable[CorrectedMassSpecPeak],
 ) -> Iterator[MassSpecTopologyAssignment]:
-    possible_assignmnets = []
-    seen_topologies = set()
-    has_four_plus_six = False
-    has_double_charged_2_plus_3 = False
-    has_single_charged_2_plus_3 = False
-    for peak in peaks:
-        if (
+    possible_assignmnets: dict[ReactionKey, PossibleAssignments] = defaultdict(
+        PossibleAssignments
+    )
+    for peak in filter(
+        lambda peak: (
             peak.get_ppm_error() < 10
             and abs(peak.get_separation() - 1 / peak.charge) < 0.02
-        ):
-            topology = f"{peak.tri_count}+{peak.di_count}"
-            if topology == "4+6":
-                has_four_plus_six = True
-            if topology == "2+3" and peak.charge == 1:
-                has_single_charged_2_plus_3 = True
-            if topology == "2+3" and peak.charge == 2:
-                has_double_charged_2_plus_3 = True
+        ),
+        peaks,
+    ):
+        reaction_key = ReactionKey(
+            experiment=peak.mass_spectrum.experiment,
+            plate=peak.mass_spectrum.plate,
+            formulation_number=peak.mass_spectrum.formulation_number,
+        )
+        possible_assignment = possible_assignmnets[reaction_key]
 
-            if topology not in seen_topologies:
-                possible_assignmnets.append(
-                    MassSpecTopologyAssignment(
-                        mass_spec_peak_id=peak.id,
-                        topology=topology,
-                    )
-                )
-                seen_topologies.add(topology)
+        topology = f"{peak.tri_count}+{peak.di_count}"
+        if topology == "4+6":
+            possible_assignment.has_four_plus_six = True
+        if topology == "2+3" and peak.charge == 1:
+            possible_assignment.has_single_charged_2_plus_3 = True
+        if topology == "2+3" and peak.charge == 2:
+            possible_assignment.has_double_charged_2_plus_3 = True
 
-    for topology_assignment in possible_assignmnets:
+        possible_assignment.topologies.append(
+            MassSpecTopologyAssignment(
+                mass_spec_peak_id=peak.id,
+                topology=topology,
+            )
+        )
+
+    for assignment in possible_assignmnets.values():
+        topologies: Iterable[MassSpecTopologyAssignment]
+        topologies = assignment.topologies
         if (
-            has_four_plus_six
-            and has_single_charged_2_plus_3
-            and not has_double_charged_2_plus_3
-            and topology_assignment.topology == "2+3"
+            assignment.has_four_plus_six
+            and assignment.has_single_charged_2_plus_3
+            and not assignment.has_double_charged_2_plus_3
         ):
+            topologies = filter(
+                lambda topology: topology.topology != "2+3",
+                topologies,
+            )
             continue
-        yield topology_assignment
+        yield from topologies

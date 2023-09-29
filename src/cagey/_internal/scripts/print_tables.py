@@ -24,13 +24,13 @@ def main() -> None:
         print(nmr_spectra)
     if "aldehyde" in args.tables:
         aldehyde_peaks = pl.read_database(
-            "SELECT * FROM aldehydepeak", engine.connect()
+            "SELECT * FROM nmraldehydepeak", engine.connect()
         )
         print("aldehydepeak")
         print(aldehyde_peaks)
     if "imine" in args.tables:
         imine_peaks = pl.read_database(
-            "SELECT * FROM iminepeak", engine.connect()
+            "SELECT * FROM nmriminepeak", engine.connect()
         )
         print("iminepeak")
         print(imine_peaks)
