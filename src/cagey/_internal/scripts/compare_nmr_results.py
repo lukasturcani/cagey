@@ -61,14 +61,6 @@ def _get_old_nmr_results(paths: Iterable[OldData]) -> pl.LazyFrame:
                 "Imine?": "has_imine",
             }
         )
-        .select(
-            [
-                "plate",
-                "formulation_number",
-                "has_aldehyde",
-                "has_imine",
-            ]
-        )
         .with_columns(experiment=pl.lit(path.experiment))
         for path in paths
     )
