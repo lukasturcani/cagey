@@ -25,7 +25,7 @@ class NmrSpectrum(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     experiment: str
-    plate: str
+    plate: int
     machine_expriment: str
     formulation_number: int
     aldehyde_peaks: list["NmrAldehydePeak"] = Relationship(
@@ -70,7 +70,7 @@ def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
         nmr_spectrum = NmrSpectrum(
             title=title,
             experiment=experiment,
-            plate=plate,
+            plate=plate[1:],
             machine_expriment=spectrum_dir.parent.parent.name,
             formulation_number=formulation_number,
         )

@@ -33,7 +33,7 @@ class MassSpectrum(SQLModel, table=True):
     )
     id: int | None = Field(default=None, primary_key=True)
     experiment: str
-    plate: str
+    plate: int
     formulation_number: int
 
     corrected_peaks: list["CorrectedMassSpecPeak"] = Relationship(
@@ -259,7 +259,7 @@ class Peak:
 @dataclass(frozen=True, slots=True)
 class ReactionKey:
     experiment: str
-    plate: str
+    plate: int
     formulation_number: int
 
     @staticmethod
@@ -269,7 +269,7 @@ class ReactionKey:
         formulation_number = int(formulation_number_)
         return ReactionKey(
             experiment=experiment,
-            plate=plate,
+            plate=int(plate[1:]),
             formulation_number=formulation_number,
         )
 
