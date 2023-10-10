@@ -11,6 +11,7 @@ from sqlmodel.pool import StaticPool
 
 def main() -> None:
     pl.Config.set_tbl_cols(-1)
+    pl.Config.set_tbl_rows(-1)
     args = _parse_args()
     engine = create_engine(
         f"sqlite:///{args.database}",
@@ -22,7 +23,7 @@ def main() -> None:
     combined_summary = old.summary.join(
         new.summary,
         on=["experiment", "plate", "formulation_number"],
-        how="outer",
+        how="left",
         suffix="_new",
     ).with_columns(
         match=(
@@ -30,8 +31,40 @@ def main() -> None:
             & (pl.col("has_imine") == pl.col("has_imine_new"))
         ),
     )
-    print(combined_summary.group_by("match").agg(pl.count()).collect())
-    print(old.aldehyde_peaks.collect())
+    spectrum_results = combined_summary.group_by("match").agg(pl.count())
+    print("imine / aldehyde found summary")
+    print(spectrum_results.collect())
+    print()
+
+    aldehyde_peaks_not_found_in_new = (
+        old.aldehyde_peaks.join_asof(
+            new.aldehyde_peaks.rename({"ppm": "ppm_right"}),
+            by=["experiment", "plate", "formulation_number"],
+            left_on="ppm",
+            right_on="ppm_right",
+            strategy="nearest",
+        )
+        .with_columns(ppm_diff=(pl.col("ppm") - pl.col("ppm_right")).abs())
+        .filter(pl.col("ppm_diff").is_null() | (pl.col("ppm_diff") > 1e-8))
+    )
+    print("aldehyde peaks not found in new")
+    print(aldehyde_peaks_not_found_in_new.collect())
+    print()
+
+    imine_peaks_not_found_in_new = (
+        old.aldehyde_peaks.join_asof(
+            new.aldehyde_peaks.rename({"ppm": "ppm_right"}),
+            by=["experiment", "plate", "formulation_number"],
+            left_on="ppm",
+            right_on="ppm_right",
+            strategy="nearest",
+        )
+        .with_columns(ppm_diff=(pl.col("ppm") - pl.col("ppm_right")).abs())
+        .filter(pl.col("ppm_diff").is_null() | (pl.col("ppm_diff") > 1e-8))
+    )
+    print("imine peaks not found in new")
+    print(imine_peaks_not_found_in_new.collect())
+    print()
 
 
 def _parse_args() -> argparse.Namespace:
