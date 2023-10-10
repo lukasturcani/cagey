@@ -24,23 +24,23 @@ def main() -> None:
             }
         )
         .filter(pl.col("Correct_Seperation?"))
-        .collect()
     )
     engine = create_engine(
         f"sqlite:///{args.database}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    mass_spectrums = pl.read_database(
-        "SELECT * from massspectrum", engine.connect()
-    ).rename({"id": "mass_spectrum_id"})
+    mass_spectrums = (
+        pl.read_database("SELECT * from massspectrum", engine.connect())
+        .lazy()
+        .rename({"id": "mass_spectrum_id"})
+    )
     corrected_peaks = pl.read_database(
         "SELECT * from correctedmassspecpeak", engine.connect()
-    )
+    ).lazy()
     results = mass_spectrums.join(
         corrected_peaks, on="mass_spectrum_id", how="inner"
     )
-    assert len(corrected_peaks) == len(results)
 
 
 def _parse_args() -> argparse.Namespace:
