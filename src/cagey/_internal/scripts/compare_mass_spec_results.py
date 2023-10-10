@@ -10,12 +10,12 @@ def main() -> None:
     pl.Config.set_tbl_cols(-1)
     pl.Config.set_tbl_rows(-1)
     args = _parse_args()
-    old_results = (
-        pl.scan_csv(args.csv_results)
+    old_results = pl.concat(
+        pl.scan_csv(path)
         .rename(
             {
                 "Plate": "plate",
-                "Itensity": "intensity",
+                "Intensity": "intensity",
                 "Adduct": "adduct",
                 "Charge": "charge",
                 "Topology": "topology",
@@ -24,6 +24,18 @@ def main() -> None:
             }
         )
         .filter(pl.col("Correct_Seperation?"))
+        .with_columns(
+            experiment=pl.lit(path.name),
+            counts=pl.col("topology")
+            .str.strip_chars("()")
+            .str.split(", ")
+            .list.eval(pl.element().cast(pl.Int64)),
+        )
+        .with_columns(
+            tri_count=pl.col("counts").list.get(0),
+            di_count=pl.col("counts").list.get(1),
+        )
+        for path in args.csv_results
     )
     engine = create_engine(
         f"sqlite:///{args.database}",
@@ -41,13 +53,14 @@ def main() -> None:
     new_results = mass_spectrums.join(
         corrected_peaks, on="mass_spectrum_id", how="inner"
     )
-    old_results.join(
+    results = old_results.join(
         new_results,
         on=[
             "experiment",
             "plate",
             "formulation_number",
-            "topology",
+            "di_count",
+            "tri_count",
             "adduct",
             "charge",
         ],
@@ -58,7 +71,7 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=Path)
-    parser.add_argument("csv_results", type=Path)
+    parser.add_argument("csv_results", type=Path, nargs="+")
     return parser.parse_args()
 
 
