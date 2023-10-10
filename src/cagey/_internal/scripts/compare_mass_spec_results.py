@@ -38,8 +38,20 @@ def main() -> None:
     corrected_peaks = pl.read_database(
         "SELECT * from correctedmassspecpeak", engine.connect()
     ).lazy()
-    results = mass_spectrums.join(
+    new_results = mass_spectrums.join(
         corrected_peaks, on="mass_spectrum_id", how="inner"
+    )
+    old_results.join(
+        new_results,
+        on=[
+            "experiment",
+            "plate",
+            "formulation_number",
+            "topology",
+            "adduct",
+            "charge",
+        ],
+        how="left",
     )
 
 
