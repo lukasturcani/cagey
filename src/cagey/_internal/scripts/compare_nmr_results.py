@@ -204,7 +204,7 @@ def _get_new_nmr_results(engine: Engine) -> Results:
     nmr_spectra = (
         pl.read_database(
             "SELECT id, experiment, plate, formulation_number "
-            "FROM nmrspectrum ",
+            "FROM nmrspectrum",
             engine.connect(),
         )
         .lazy()
