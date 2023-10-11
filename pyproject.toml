@@ -39,6 +39,7 @@ dev = [
 print-tables = "cagey._internal.scripts.print_tables:main"
 compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
 compare-mass-spec-results = "cagey._internal.scripts.compare_mass_spec_results:main"
+make-tables = "cagey._internal.scripts.make_tables:main"
 add-nmr-peaks = "cagey._internal.scripts.add_nmr_peaks:main"
 add-reactions = "cagey._internal.scripts.add_reactions:main"
 add-mass-spec = "cagey._internal.scripts.add_mass_spec:main"

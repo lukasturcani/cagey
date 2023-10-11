@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
@@ -10,202 +9,109 @@ import polars as pl
 import rdkit.Chem.AllChem as rdkit
 from pyopenms import EmpiricalFormula
 from sqlmodel import (
-    Field,
-    Relationship,
     Session,
-    SQLModel,
-    UniqueConstraint,
     and_,
     not_,
     or_,
     select,
 )
 
-from cagey._internal.reactions import Precursor as PrecursorTable
-from cagey._internal.reactions import Reaction
+from cagey._internal.tables import (
+    CorrectedMassSpecPeak,
+    MassSpecPeak,
+    MassSpecTopologyAssignment,
+    MassSpectrum,
+    Precursor,
+    Reaction,
+)
 
-logger = logging.getLogger(__name__)
-
-
-class MassSpectrum(SQLModel, table=True):
-    __table_args__ = (
-        UniqueConstraint("experiment", "plate", "formulation_number"),
-    )
-    id: int | None = Field(default=None, primary_key=True)
-    experiment: str
-    plate: int
-    formulation_number: int
-
-    corrected_peaks: list["CorrectedMassSpecPeak"] = Relationship(
-        back_populates="mass_spectrum"
-    )
-    peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
-
-
-class CorrectedMassSpecPeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    di_name: str = Field(foreign_key="precursor.name")
-    tri_name: str = Field(foreign_key="precursor.name")
-    calculated_mz: float
-    spectrum_mz: float
-    corrected_mz: float
-    intensity: float
-
-    mass_spectrum: MassSpectrum = Relationship(
-        back_populates="corrected_peaks",
-    )
-
-    def get_ppm_error(self) -> float:
-        return abs(
-            (self.calculated_mz - self.spectrum_mz) / self.calculated_mz * 1e6
-        )
-
-    def get_separation(self) -> float:
-        return self.corrected_mz - self.spectrum_mz
+ADDUCTS = (
+    EmpiricalFormula("H1"),
+    EmpiricalFormula("H2"),
+    EmpiricalFormula("H3"),
+    EmpiricalFormula("H3"),
+    EmpiricalFormula("K1"),
+    EmpiricalFormula("K2"),
+    EmpiricalFormula("K3"),
+    EmpiricalFormula("Na1"),
+    EmpiricalFormula("Na2"),
+    EmpiricalFormula("Na3"),
+    EmpiricalFormula("N1H4"),
+)
+H_MONO_WEIGHT = EmpiricalFormula("H").getMonoWeight()
+CHARGES = (1, 2, 3, 4)
+CHARGE1_BANNED_ADDUCTS = {"H2", "K2", "Na2", "H3", "K3", "Na3"}
+CHARGE2_BANNED_ADDUCTS = {"H1", "H3", "K1", "K3", "Na1", "Na3"}
+PRECURSOR_COUNTS = (
+    (2, 3),
+    (4, 6),
+    (3, 5),
+    (6, 9),
+    (8, 12),
+)
 
 
-class MassSpecPeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    di_name: str = Field(foreign_key="precursor.name")
-    tri_name: str = Field(foreign_key="precursor.name")
-    calculated_mz: float
-    spectrum_mz: float
-    intensity: float
-
-    mass_spectrum: MassSpectrum = Relationship(
-        back_populates="peaks",
-    )
-
-
-class MassSpecTopologyAssignment(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    mass_spec_peak_id: int = Field(foreign_key="massspecpeak.id")
-    topology: str
-
-
-def add_data(
-    mass_spec_path: Path,
-    session: Session,
-    commit: bool = True,
-) -> None:
-    adducts = (
-        EmpiricalFormula("H1"),
-        EmpiricalFormula("H2"),
-        EmpiricalFormula("H3"),
-        EmpiricalFormula("H3"),
-        EmpiricalFormula("K1"),
-        EmpiricalFormula("K2"),
-        EmpiricalFormula("K3"),
-        EmpiricalFormula("Na1"),
-        EmpiricalFormula("Na2"),
-        EmpiricalFormula("Na3"),
-        EmpiricalFormula("N1H4"),
-    )
-    charges = (1, 2, 3, 4)
-    precursor_counts = (
-        (2, 3),
-        (4, 6),
-        (3, 5),
-        (6, 9),
-        (8, 12),
-    )
-    charge1_banned_adducts = {"H2", "K2", "Na2", "H3", "K3", "Na3"}
-    charge2_banned_adducts = {"H1", "H3", "K1", "K3", "Na1", "Na3"}
-    h_mono_weight = EmpiricalFormula("H").getMonoWeight()
-    paths = tuple(mass_spec_path.glob("**/*_Processed.csv"))
-    query = select(Reaction).where(or_(*map(_get_reaction_filter, paths)))
-    reactions = session.exec(query).all()
-    for reaction_data in _get_reaction_data(paths, reactions):
-        try:
-            peaks = pl.read_csv(reaction_data.path).filter(
-                pl.col("height") > 1e4
-            )
-        except pl.NoDataError:
-            logger.error("%s is empty", reaction_data.path)
+def get_mass_spectrum(
+    path: Path,
+    reaction: Reaction,
+    di: Precursor,
+    tri: Precursor,
+) -> MassSpectrum:
+    peaks = pl.scan_csv(path).filter(pl.col("height") > 1e4).collect()
+    mass_spectrum = MassSpectrum(reaction_id=reaction.id)
+    di_formula = _get_precursor_formula(di)
+    tri_formula = _get_precursor_formula(tri)
+    for adduct, charge, (di_count, tri_count) in product(
+        ADDUCTS, CHARGES, PRECURSOR_COUNTS
+    ):
+        if charge == 1 and str(adduct.toString()) in CHARGE1_BANNED_ADDUCTS:
+            continue
+        if charge == 2 and str(adduct.toString()) in CHARGE2_BANNED_ADDUCTS:
             continue
 
-        mass_spectrum = MassSpectrum(
-            experiment=reaction_data.reaction.experiment,
-            plate=reaction_data.reaction.plate,
-            formulation_number=reaction_data.reaction.formulation_number,
+        di_data = PrecursorData(di_formula, di_count, 2)
+        tri_data = PrecursorData(tri_formula, tri_count, 3)
+        cage_mz = _get_cage_mz(di_data, tri_data, adduct, charge)
+        cage_peaks = peaks.filter(
+            pl.col("mz").is_between(cage_mz - 0.1, cage_mz + 0.1)
         )
-
-        di_formula = _get_precursor_formula(
-            session, reaction_data.reaction.di_name
+        if cage_peaks.is_empty():
+            continue
+        cage_peak = cage_peaks.row(0, named=True)
+        corrected_mz = cage_peak["mz"] + H_MONO_WEIGHT / charge
+        corrected_peaks = peaks.filter(
+            pl.col("mz").is_between(corrected_mz - 0.1, corrected_mz + 0.1)
         )
-        tri_formula = _get_precursor_formula(
-            session, reaction_data.reaction.tri_name
-        )
-        for adduct, charge, (di_count, tri_count) in product(
-            adducts, charges, precursor_counts
-        ):
-            if (
-                charge == 1
-                and str(adduct.toString()) in charge1_banned_adducts
-            ):
-                continue
-            if (
-                charge == 2
-                and str(adduct.toString()) in charge2_banned_adducts
-            ):
-                continue
-
-            di = Precursor(di_formula, di_count, 2)
-            tri = Precursor(tri_formula, tri_count, 3)
-            cage_mz = _get_cage_mz(di, tri, adduct, charge)
-            cage_peaks = peaks.filter(
-                pl.col("mz").is_between(cage_mz - 0.1, cage_mz + 0.1)
-            )
-            if cage_peaks.is_empty():
-                continue
-            cage_peak = cage_peaks.row(0, named=True)
-            corrected_mz = cage_peak["mz"] + h_mono_weight / charge
-            corrected_peaks = peaks.filter(
-                pl.col("mz").is_between(corrected_mz - 0.1, corrected_mz + 0.1)
-            )
-            if corrected_peaks.is_empty():
-                mass_spectrum.peaks.append(
-                    MassSpecPeak(
-                        di_count=di_count,
-                        tri_count=tri_count,
-                        adduct=str(adduct.toString()),
-                        charge=charge,
-                        di_name=reaction_data.reaction.di_name,
-                        tri_name=reaction_data.reaction.tri_name,
-                        calculated_mz=cage_mz,
-                        spectrum_mz=cage_peak["mz"],
-                        intensity=cage_peak["height"],
-                    )
+        if corrected_peaks.is_empty():
+            mass_spectrum.peaks.append(
+                MassSpecPeak(
+                    di_count=di_count,
+                    tri_count=tri_count,
+                    adduct=str(adduct.toString()),
+                    charge=charge,
+                    di_name=reaction.di_name,
+                    tri_name=reaction.tri_name,
+                    calculated_mz=cage_mz,
+                    spectrum_mz=cage_peak["mz"],
+                    intensity=cage_peak["height"],
                 )
-            else:
-                mass_spectrum.corrected_peaks.append(
-                    CorrectedMassSpecPeak(
-                        di_count=di_count,
-                        tri_count=tri_count,
-                        adduct=str(adduct.toString()),
-                        charge=charge,
-                        di_name=reaction_data.reaction.di_name,
-                        tri_name=reaction_data.reaction.tri_name,
-                        calculated_mz=cage_mz,
-                        spectrum_mz=cage_peak["mz"],
-                        corrected_mz=corrected_peaks.row(0, named=True)["mz"],
-                        intensity=cage_peak["height"],
-                    )
+            )
+        else:
+            mass_spectrum.corrected_peaks.append(
+                CorrectedMassSpecPeak(
+                    di_count=di_count,
+                    tri_count=tri_count,
+                    adduct=str(adduct.toString()),
+                    charge=charge,
+                    di_name=reaction.di_name,
+                    tri_name=reaction.tri_name,
+                    calculated_mz=cage_mz,
+                    spectrum_mz=cage_peak["mz"],
+                    corrected_mz=corrected_peaks.row(0, named=True)["mz"],
+                    intensity=cage_peak["height"],
                 )
-        session.add(mass_spectrum)
-
-    if commit:
-        session.commit()
+            )
+    return mass_spectrum
 
 
 def add_topology_assignments(
@@ -231,14 +137,11 @@ def add_topology_assignments(
 
 
 def _get_precursor_formula(
-    session: Session, precursor_name: str
+    precursor: Precursor,
 ) -> EmpiricalFormula:
-    smiles = next(
-        session.exec(
-            select(PrecursorTable).where(PrecursorTable.name == precursor_name)
-        )
-    ).smiles
-    return EmpiricalFormula(rdkit.CalcMolFormula(rdkit.MolFromSmiles(smiles)))
+    return EmpiricalFormula(
+        rdkit.CalcMolFormula(rdkit.MolFromSmiles(precursor.smiles))
+    )
 
 
 def _get_reaction_filter(path: Path) -> Any:
@@ -293,15 +196,15 @@ def _get_reaction_data(
 
 
 @dataclass(frozen=True, slots=True)
-class Precursor:
+class PrecursorData:
     formula: EmpiricalFormula
     count: int
     num_functional_groups: int
 
 
 def _get_cage_mz(
-    di: Precursor,
-    tri: Precursor,
+    di: PrecursorData,
+    tri: PrecursorData,
     adduct: EmpiricalFormula,
     charge: int,
 ) -> float:

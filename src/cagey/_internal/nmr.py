@@ -6,50 +6,9 @@ from pathlib import Path
 
 import nmrglue
 import numpy as np
-from sqlmodel import Field, Relationship, Session, SQLModel, UniqueConstraint
+from sqlmodel import Session
 
 logger = logging.getLogger(__name__)
-
-
-class NmrSpectrum(SQLModel, table=True):
-    __table_args__ = (
-        UniqueConstraint(
-            "title",
-            "experiment",
-            "plate",
-            "machine_expriment",
-            "formulation_number",
-        ),
-    )
-
-    id: int | None = Field(default=None, primary_key=True)
-    title: str
-    experiment: str
-    plate: int
-    machine_expriment: str
-    formulation_number: int
-    aldehyde_peaks: list["NmrAldehydePeak"] = Relationship(
-        back_populates="nmr_spectrum",
-    )
-    imine_peaks: list["NmrIminePeak"] = Relationship(
-        back_populates="nmr_spectrum"
-    )
-
-
-class NmrAldehydePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    ppm: float
-    amplitude: float
-    nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
-
-
-class NmrIminePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    ppm: float
-    amplitude: float
-    nmr_spectrum: NmrSpectrum = Relationship(back_populates="imine_peaks")
 
 
 def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:

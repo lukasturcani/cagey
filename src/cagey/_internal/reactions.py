@@ -1,25 +1,9 @@
 from collections.abc import Iterable
 from itertools import product
 
-from sqlmodel import Field, Session, SQLModel, UniqueConstraint
+from sqlmodel import Session
 
-
-class Precursor(SQLModel, table=True):
-    name: str = Field(primary_key=True)
-    smiles: str
-
-
-class Reaction(SQLModel, table=True):
-    __table_args__ = (
-        UniqueConstraint("experiment", "plate", "formulation_number"),
-    )
-
-    id: int | None = Field(default=None, primary_key=True)
-    experiment: str
-    plate: int
-    formulation_number: int
-    di_name: str = Field(foreign_key="precursor.name")
-    tri_name: str = Field(foreign_key="precursor.name")
+from cagey._internal.tables import Precursor, Reaction
 
 
 def add_precursors(session: Session, commit: bool = True) -> None:

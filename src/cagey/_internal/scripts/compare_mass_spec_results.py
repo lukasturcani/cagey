@@ -24,8 +24,9 @@ def main() -> None:
             }
         )
         .filter(pl.col("Correct_Seperation?"))
+        .filter(pl.col("adduct").is_not_null())
         .with_columns(
-            experiment=pl.lit(path.name),
+            experiment=pl.lit(path.stem),
             counts=pl.col("topology")
             .str.strip_chars("()")
             .str.split(", ")
@@ -65,6 +66,44 @@ def main() -> None:
             "charge",
         ],
         how="left",
+    )
+    print(
+        old_results.select(
+            [
+                "experiment",
+                "plate",
+                "formulation_number",
+                "di_count",
+                "tri_count",
+                "adduct",
+                "charge",
+                "spectrum_mz",
+            ]
+        )
+        .filter(
+            (pl.col("plate") == pl.lit(1))
+            & (pl.col("formulation_number") == pl.lit(9))
+        )
+        .collect()
+    )
+    print(
+        new_results.select(
+            [
+                "experiment",
+                "plate",
+                "formulation_number",
+                "di_count",
+                "tri_count",
+                "adduct",
+                "charge",
+                "spectrum_mz",
+            ]
+        )
+        .filter(
+            (pl.col("plate") == pl.lit(1))
+            & (pl.col("formulation_number") == pl.lit(9))
+        )
+        .collect()
     )
 
 

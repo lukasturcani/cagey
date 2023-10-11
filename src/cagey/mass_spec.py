@@ -1,6 +1,5 @@
-from cagey._internal.mass_spec import add_data, add_topology_assignments
+from cagey._internal.mass_spec import get_mass_spectrum
 
 __all__ = [
-    "add_data",
-    "add_topology_assignments",
+    "get_mass_spectrum",
 ]
