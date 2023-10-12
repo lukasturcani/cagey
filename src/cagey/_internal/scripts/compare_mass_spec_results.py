@@ -54,7 +54,7 @@ def main() -> None:
     new_results = mass_spectrums.join(
         corrected_peaks, on="mass_spectrum_id", how="inner"
     )
-    results = old_results.join(
+    old_results.join(
         new_results,
         on=[
             "experiment",
