@@ -36,6 +36,8 @@ dev = [
 ]
 
 [project.scripts]
+cagey-rename-ms-csv = "cagey._internal.scripts.rename_ms_csv:main"
+cagey-ms-peaks = "cagey._internal.scripts.ms_peaks:main"
 print-tables = "cagey._internal.scripts.print_tables:main"
 compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
 compare-mass-spec-results = "cagey._internal.scripts.compare_mass_spec_results:main"
