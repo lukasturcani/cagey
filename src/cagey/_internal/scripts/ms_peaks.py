@@ -34,7 +34,7 @@ def main() -> None:
         reaction, di, tri = session.exec(reaction_query).one()
 
     mass_spectrum = cagey.mass_spec.get_mass_spectrum(
-        args.mass_spec_csv.path, reaction, di, tri
+        args.mass_spec_csv, reaction, di, tri
     )
     peak_df = _get_peak_df(mass_spectrum.peaks)
     print(peak_df)
