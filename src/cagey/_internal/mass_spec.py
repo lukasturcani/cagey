@@ -17,12 +17,12 @@ from sqlmodel import (
 )
 
 from cagey._internal.tables import (
-    CorrectedMassSpecPeak,
     MassSpecPeak,
     MassSpecTopologyAssignment,
     MassSpectrum,
     Precursor,
     Reaction,
+    SeparationMassSpecPeak,
 )
 
 ADDUCTS = (
@@ -61,7 +61,7 @@ def get_mass_spectrum(
     mass_spectrum = MassSpectrum(reaction_id=reaction.id)
     di_formula = _get_precursor_formula(di)
     tri_formula = _get_precursor_formula(tri)
-    for adduct, charge, (di_count, tri_count) in product(
+    for adduct, charge, (tri_count, di_count) in product(
         ADDUCTS, CHARGES, PRECURSOR_COUNTS
     ):
         if charge == 1 and str(adduct.toString()) in CHARGE1_BANNED_ADDUCTS:
@@ -78,11 +78,11 @@ def get_mass_spectrum(
         if cage_peaks.is_empty():
             continue
         cage_peak = cage_peaks.row(0, named=True)
-        corrected_mz = cage_peak["mz"] + H_MONO_WEIGHT / charge
-        corrected_peaks = peaks.filter(
-            pl.col("mz").is_between(corrected_mz - 0.1, corrected_mz + 0.1)
+        separation_mz = cage_peak["mz"] + H_MONO_WEIGHT / charge
+        separation_peaks = peaks.filter(
+            pl.col("mz").is_between(separation_mz - 0.1, separation_mz + 0.1)
         )
-        if corrected_peaks.is_empty():
+        if separation_peaks.is_empty():
             mass_spectrum.peaks.append(
                 MassSpecPeak(
                     di_count=di_count,
@@ -97,8 +97,8 @@ def get_mass_spectrum(
                 )
             )
         else:
-            mass_spectrum.corrected_peaks.append(
-                CorrectedMassSpecPeak(
+            mass_spectrum.separation_peaks.append(
+                SeparationMassSpecPeak(
                     di_count=di_count,
                     tri_count=tri_count,
                     adduct=str(adduct.toString()),
@@ -107,7 +107,7 @@ def get_mass_spectrum(
                     tri_name=reaction.tri_name,
                     calculated_mz=cage_mz,
                     spectrum_mz=cage_peak["mz"],
-                    corrected_mz=corrected_peaks.row(0, named=True)["mz"],
+                    separation_mz=separation_peaks.row(0, named=True)["mz"],
                     intensity=cage_peak["height"],
                 )
             )
@@ -118,16 +118,16 @@ def add_topology_assignments(
     session: Session,
     commit: bool = True,
 ) -> None:
-    query = select(CorrectedMassSpecPeak).where(
+    query = select(SeparationMassSpecPeak).where(
         not_(
             and_(
-                CorrectedMassSpecPeak.tri_count == 3,
-                CorrectedMassSpecPeak.di_count == 5,
+                SeparationMassSpecPeak.tri_count == 3,
+                SeparationMassSpecPeak.di_count == 5,
             )
         ),
         or_(
-            CorrectedMassSpecPeak.charge == 1,
-            CorrectedMassSpecPeak.charge == 2,
+            SeparationMassSpecPeak.charge == 1,
+            SeparationMassSpecPeak.charge == 2,
         ),
     )
     session.add_all(_assign_cage_topology(session.exec(query)))
@@ -141,15 +141,6 @@ def _get_precursor_formula(
 ) -> EmpiricalFormula:
     return EmpiricalFormula(
         rdkit.CalcMolFormula(rdkit.MolFromSmiles(precursor.smiles))
-    )
-
-
-def _get_reaction_filter(path: Path) -> Any:
-    key = ReactionKey.from_path(path)
-    return and_(
-        Reaction.experiment == key.experiment,
-        Reaction.plate == key.plate,
-        Reaction.formulation_number == key.formulation_number,
     )
 
 
@@ -181,18 +172,6 @@ class ReactionKey:
 class ReactionData:
     path: Path
     reaction: Reaction
-
-
-def _get_reaction_data(
-    paths: Iterable[Path],
-    reactions: Iterable[Reaction],
-) -> Iterator[ReactionData]:
-    key_to_path = {ReactionKey.from_path(path): path for path in paths}
-    for reaction in reactions:
-        key = ReactionKey(
-            reaction.experiment, reaction.plate, reaction.formulation_number
-        )
-        yield ReactionData(path=key_to_path[key], reaction=reaction)
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,7 +210,7 @@ class PossibleAssignments:
 
 
 def _assign_cage_topology(
-    peaks: Iterable[CorrectedMassSpecPeak],
+    peaks: Iterable[SeparationMassSpecPeak],
 ) -> Iterator[MassSpecTopologyAssignment]:
     possible_assignmnets: dict[ReactionKey, PossibleAssignments] = defaultdict(
         PossibleAssignments

@@ -62,13 +62,13 @@ class MassSpectrum(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     reaction_id: int = Field(foreign_key="reaction.id")
 
-    corrected_peaks: list["CorrectedMassSpecPeak"] = Relationship(
+    separation_peaks: list["SeparationMassSpecPeak"] = Relationship(
         back_populates="mass_spectrum"
     )
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
 
 
-class CorrectedMassSpecPeak(SQLModel, table=True):
+class SeparationMassSpecPeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
     di_count: int
@@ -79,11 +79,11 @@ class CorrectedMassSpecPeak(SQLModel, table=True):
     tri_name: str = Field(foreign_key="precursor.name")
     calculated_mz: float
     spectrum_mz: float
-    corrected_mz: float
+    separation_mz: float
     intensity: float
 
     mass_spectrum: MassSpectrum = Relationship(
-        back_populates="corrected_peaks",
+        back_populates="separation_peaks",
     )
 
     def get_ppm_error(self) -> float:
@@ -92,7 +92,7 @@ class CorrectedMassSpecPeak(SQLModel, table=True):
         )
 
     def get_separation(self) -> float:
-        return self.corrected_mz - self.spectrum_mz
+        return self.separation_mz - self.spectrum_mz
 
 
 class MassSpecPeak(SQLModel, table=True):

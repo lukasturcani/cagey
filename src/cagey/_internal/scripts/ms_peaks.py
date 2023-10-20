@@ -10,10 +10,12 @@ from sqlmodel import Session, create_engine, select
 from sqlmodel.pool import StaticPool
 
 import cagey
-from cagey import CorrectedMassSpecPeak, MassSpecPeak, Precursor, Reaction
+from cagey import MassSpecPeak, Precursor, Reaction, SeparationMassSpecPeak
 
 
 def main() -> None:
+    pl.Config.set_tbl_cols(-1)
+    pl.Config.set_tbl_rows(-1)
     args = _parse_args()
     engine = create_engine(
         f"sqlite:///{args.database}",
@@ -38,7 +40,7 @@ def main() -> None:
     )
     peak_df = _get_peak_df(mass_spectrum.peaks)
     print(peak_df)
-    corrected_peak_df = _get_corrected_peak_df(mass_spectrum.corrected_peaks)
+    corrected_peak_df = _get_separation_peak_df(mass_spectrum.separation_peaks)
     print(corrected_peak_df)
 
 
@@ -77,8 +79,8 @@ def _get_peak_df(peaks: Sequence[MassSpecPeak]) -> pl.DataFrame:
     )
 
 
-def _get_corrected_peak_df(
-    peaks: Sequence[CorrectedMassSpecPeak],
+def _get_separation_peak_df(
+    peaks: Sequence[SeparationMassSpecPeak],
 ) -> pl.DataFrame:
     return pl.DataFrame(
         {
@@ -90,7 +92,7 @@ def _get_corrected_peak_df(
             "tri_name": list(map(attrgetter("tri_name"), peaks)),
             "calculated_mz": list(map(attrgetter("calculated_mz"), peaks)),
             "spectrum_mz": list(map(attrgetter("spectrum_mz"), peaks)),
-            "corrected_mz": list(map(attrgetter("corrected_mz"), peaks)),
+            "separation_mz": list(map(attrgetter("separation_mz"), peaks)),
             "intensity": list(map(attrgetter("intensity"), peaks)),
         }
     )
