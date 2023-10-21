@@ -1,4 +1,4 @@
-from cagey import mass_spec, nmr, reactions
+from cagey import ms, nmr, reactions
 from cagey._internal.tables import (
     MassSpecPeak,
     MassSpecTopologyAssignment,
@@ -13,7 +13,7 @@ from cagey._internal.tables import (
 )
 
 __all__ = [
-    "mass_spec",
+    "ms",
     "nmr",
     "reactions",
     "make_tables",

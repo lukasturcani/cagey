@@ -51,7 +51,7 @@ PRECURSOR_COUNTS = (
 )
 
 
-def get_mass_spectrum(
+def get_spectrum(
     path: Path,
     reaction: Reaction,
     di: Precursor,

@@ -18,7 +18,7 @@ def main() -> None:
 
         new_title = "_".join(
             [
-                experiment,
+                experiment.replace("AB-01-005", "AB-02-005"),
                 plate.removeprefix("P").replace("2B", "4"),
                 formulation_number.zfill(2),
             ]

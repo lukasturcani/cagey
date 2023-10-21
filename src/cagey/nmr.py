@@ -1,5 +1,5 @@
-from cagey._internal.nmr import get_nmr_spectrum
+from cagey._internal.nmr import get_spectrum
 
 __all__ = [
-    "get_nmr_spectrum",
+    "get_spectrum",
 ]

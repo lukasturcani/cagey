@@ -6,20 +6,16 @@ from pathlib import Path
 import nmrglue
 import numpy as np
 
-from cagey._internal.tables import NmrAldehydePeak, NmrIminePeak, NmrSpectrum
+from cagey._internal.tables import (
+    NmrAldehydePeak,
+    NmrIminePeak,
+    NmrSpectrum,
+    Reaction,
+)
 
 
-def get_nmr_spectrum(title_file: Path) -> NmrSpectrum:
-    spectrum_dir = title_file.parent
-    title = title_file.read_text()
-    experiment, plate, formulation_number = title.split("_")
-
-    nmr_spectrum = NmrSpectrum(
-        title=title,
-        experiment=experiment,
-        plate=int(plate),
-        formulation_number=int(formulation_number),
-    )
+def get_spectrum(spectrum_dir: Path, reaction: Reaction) -> NmrSpectrum:
+    nmr_spectrum = NmrSpectrum(reaction_id=reaction.id)
     peaks = tuple(_pick_peaks(spectrum_dir))
 
     reference_peak_ppm = 7.28

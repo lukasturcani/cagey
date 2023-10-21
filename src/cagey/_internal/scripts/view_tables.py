@@ -45,7 +45,7 @@ def main() -> None:
             "SELECT * FROM reaction", engine.connect()
         )
         print("reaction")
-        print(reactions)
+        print(reactions.sort(["experiment", "plate", "formulation_number"]))
     if "mass_spec" in args.tables:
         mass_spec = pl.read_database(
             "SELECT * FROM massspectrum", engine.connect()

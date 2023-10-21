@@ -11,7 +11,7 @@ maintainers = [
 dependencies = [
   "sqlmodel",
   "polars[connectorx,pyarrow]",
-  "nmrglue",
+  "nmrglue@git+https://github.com/jjhelmus/nmrglue",
   "pyopenms",
   "rdkit",
 ]
@@ -42,7 +42,7 @@ cagey-view-ms = "cagey._internal.scripts.view_ms:main"
 cagey-make-tables = "cagey._internal.scripts.make_tables:main"
 cagey-add-reactions = "cagey._internal.scripts.add_reactions:main"
 cagey-add-ms = "cagey._internal.scripts.add_ms:main"
-cgey-add-nmr = "cagey._internal.scripts.add_nmr:main"
+cagey-add-nmr = "cagey._internal.scripts.add_nmr:main"
 cagey-view-tables = "cagey._internal.scripts.view_tables:main"
 compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
 compare-mass-spec-results = "cagey._internal.scripts.compare_mass_spec_results:main"

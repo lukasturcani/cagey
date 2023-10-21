@@ -34,9 +34,7 @@ def main() -> None:
         }
         for path, reaction_key in zip(args.csv, reaction_keys, strict=True):
             reaction, di, tri = reactions[reaction_key]
-            session.add(
-                cagey.mass_spec.get_mass_spectrum(path, reaction, di, tri)
-            )
+            session.add(cagey.ms.get_spectrum(path, reaction, di, tri))
         session.commit()
 
 
