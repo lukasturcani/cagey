@@ -52,12 +52,12 @@ def main() -> None:
         )
         print("massspectrum")
         print(mass_spec)
-    if "corrected_mass_spec_peak" in args.tables:
-        corrected_mass_spec_peaks = pl.read_database(
-            "SELECT * FROM correctedmassspecpeak", engine.connect()
+    if "separation_mass_spec_peak" in args.tables:
+        separation_mass_spec_peaks = pl.read_database(
+            "SELECT * FROM separationmassspecpeak", engine.connect()
         )
-        print("correctedmassspecpeak")
-        print(corrected_mass_spec_peaks)
+        print("separationmassspecpeak")
+        print(separation_mass_spec_peaks)
     if "mass_spec_peak" in args.tables:
         mass_spec_peaks = pl.read_database(
             "SELECT * FROM massspecpeak", engine.connect()
@@ -91,7 +91,7 @@ def _parse_args() -> argparse.Namespace:
             "precursor",
             "reaction",
             "mass_spec",
-            "corrected_mass_spec_peak",
+            "separation_mass_spec_peak",
             "mass_spec_peak",
             "mass_spec_topology",
         ],
@@ -103,7 +103,7 @@ def _parse_args() -> argparse.Namespace:
             "precursor",
             "reaction",
             "mass_spec",
-            "corrected_mass_spec_peak",
+            "separation_mass_spec_peak",
             "mass_spec_peak",
             "mass_spec_topology",
         ],
