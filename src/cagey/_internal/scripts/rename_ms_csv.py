@@ -6,10 +6,21 @@ from typing import cast
 def main() -> None:
     args = _parse_args()
     for csv in cast(list[Path], args.csv):
-        experiment, plate_data, _ = csv.stem.split("_")
-        plate, formulation_number = plate_data.split("-")
-        plate = plate.removeprefix("P")
-        stem = "_".join([experiment, plate, formulation_number])
+        try:
+            experiment, plate_data, _ = csv.stem.split("_")
+            plate, formulation_number = plate_data.split("-")
+        except ValueError:
+            data, _ = csv.stem.split("_")
+            *experiment_, plate, formulation_number = data.split("-")
+            experiment = "-".join(experiment_)
+
+        stem = "_".join(
+            [
+                experiment,
+                plate.removeprefix("P").replace("2B", "4"),
+                formulation_number.zfill(2),
+            ]
+        )
         csv.rename(csv.parent / f"{stem}.csv")
 
 
