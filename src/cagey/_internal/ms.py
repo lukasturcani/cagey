@@ -3,7 +3,6 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
-from typing import Any
 
 import polars as pl
 import rdkit.Chem.AllChem as rdkit
