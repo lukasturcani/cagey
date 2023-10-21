@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, replace
 from operator import attrgetter
@@ -6,84 +5,53 @@ from pathlib import Path
 
 import nmrglue
 import numpy as np
-from sqlmodel import Session
 
-logger = logging.getLogger(__name__)
+from cagey._internal.tables import NmrAldehydePeak, NmrIminePeak, NmrSpectrum
 
 
-def add_data(nmr_path: Path, session: Session, commit: bool = True) -> None:
-    for spectrum in nmr_path.glob("**/pdata/1/1r"):
-        spectrum_dir = spectrum.parent
-        try:
-            title = spectrum_dir.joinpath("title").read_text()
-            experiment, plate, formulation_number_ = title.split(",")
-            formulation_number = int(formulation_number_)
-        except ValueError:
-            logger.error(
-                "reading %s failed because of bad title %s",
-                spectrum_dir,
-                title,
-            )
-            continue
+def get_nmr_spectrum(title_file: Path) -> NmrSpectrum:
+    spectrum_dir = title_file.parent
+    title = title_file.read_text()
+    experiment, plate, formulation_number = title.split("_")
 
-        nmr_spectrum = NmrSpectrum(
-            title=title,
-            experiment=experiment,
-            plate=plate[1:],
-            machine_expriment=spectrum_dir.parent.parent.name,
-            formulation_number=formulation_number,
+    nmr_spectrum = NmrSpectrum(
+        title=title,
+        experiment=experiment,
+        plate=int(plate),
+        formulation_number=int(formulation_number),
+    )
+    peaks = tuple(_pick_peaks(spectrum_dir))
+
+    reference_peak_ppm = 7.28
+    possible_reference_peaks = filter(
+        lambda peak: peak.has_ppm(reference_peak_ppm),
+        peaks,
+    )
+    reference_peak = max(
+        possible_reference_peaks,
+        key=attrgetter("amplitude"),
+    )
+    reference_shift = 7.26 - reference_peak.shift
+    chloroform_peaks = [7.26, 7.52, 7.00]
+    nmr_spectrum.aldehyde_peaks.extend(
+        NmrAldehydePeak(
+            nmr_spectrum=nmr_spectrum,
+            ppm=peak.shift,
+            amplitude=peak.amplitude,
         )
-
-        try:
-            peaks = tuple(_pick_peaks(spectrum_dir))
-        except ZeroDivisionError:
-            logger.error(
-                "reading %s failed with zero division error", spectrum_dir
-            )
-            continue
-
-        reference_peak_ppm = 7.28
-        possible_reference_peaks = filter(
-            lambda peak: peak.has_ppm(reference_peak_ppm),
-            peaks,
+        for peak in _get_aldehyde_peaks(
+            peaks, reference_shift, chloroform_peaks
         )
-        try:
-            reference_peak = max(
-                possible_reference_peaks,
-                key=attrgetter("amplitude"),
-            )
-        except ValueError:
-            logger.error(
-                "%s has no reference peak at %s",
-                spectrum_dir,
-                reference_peak_ppm,
-            )
-            continue
-        reference_shift = 7.26 - reference_peak.shift
-        chloroform_peaks = [7.26, 7.52, 7.00]
-        nmr_spectrum.aldehyde_peaks.extend(
-            NmrAldehydePeak(
-                nmr_spectrum=nmr_spectrum,
-                ppm=peak.shift,
-                amplitude=peak.amplitude,
-            )
-            for peak in _get_aldehyde_peaks(
-                peaks, reference_shift, chloroform_peaks
-            )
+    )
+    nmr_spectrum.imine_peaks.extend(
+        NmrIminePeak(
+            nmr_spectrum=nmr_spectrum,
+            ppm=peak.shift,
+            amplitude=peak.amplitude,
         )
-        nmr_spectrum.imine_peaks.extend(
-            NmrIminePeak(
-                nmr_spectrum=nmr_spectrum,
-                ppm=peak.shift,
-                amplitude=peak.amplitude,
-            )
-            for peak in _get_imine_peaks(
-                peaks, reference_shift, chloroform_peaks
-            )
-        )
-        session.add(nmr_spectrum)
-        if commit:
-            session.commit()
+        for peak in _get_imine_peaks(peaks, reference_shift, chloroform_peaks)
+    )
+    return nmr_spectrum
 
 
 @dataclass(frozen=True, slots=True)

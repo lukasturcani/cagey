@@ -17,13 +17,13 @@ def main() -> None:
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        cagey.nmr.add_data(args.nmr_directory, session)
+        session.add_all(map(cagey.nmr.get_nmr_spectrum, args.title_file))
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=Path)
-    parser.add_argument("nmr_directory", type=Path)
+    parser.add_argument("title_file", type=Path, nargs="+")
     return parser.parse_args()
 
 
