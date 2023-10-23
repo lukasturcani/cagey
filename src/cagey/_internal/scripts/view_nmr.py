@@ -55,7 +55,7 @@ def _get_peak_df(
             "ppm": list(map(attrgetter("ppm"), peaks)),
             "amplitude": list(map(attrgetter("amplitude"), peaks)),
         }
-    )
+    ).sort(["ppm", "amplitude"])
 
 
 if __name__ == "__main__":

@@ -29,18 +29,22 @@ def get_spectrum(spectrum_dir: Path, reaction: Reaction) -> NmrSpectrum:
     )
     reference_shift = 7.26 - reference_peak.shift
     chloroform_peaks = [7.26, 7.52, 7.00]
-    for peak in _get_aldehyde_peaks(peaks, reference_shift, chloroform_peaks):
+    nmr_spectrum.aldehyde_peaks.extend(
         NmrAldehydePeak(
-            nmr_spectrum=nmr_spectrum,
             ppm=peak.shift,
             amplitude=peak.amplitude,
         )
-    for peak in _get_imine_peaks(peaks, reference_shift, chloroform_peaks):
+        for peak in _get_aldehyde_peaks(
+            peaks, reference_shift, chloroform_peaks
+        )
+    )
+    nmr_spectrum.imine_peaks.extend(
         NmrIminePeak(
-            nmr_spectrum=nmr_spectrum,
             ppm=peak.shift,
             amplitude=peak.amplitude,
         )
+        for peak in _get_imine_peaks(peaks, reference_shift, chloroform_peaks)
+    )
     return nmr_spectrum
 
 
