@@ -12,6 +12,8 @@ from cagey import NmrAldehydePeak, NmrIminePeak, Reaction
 
 
 def main() -> None:
+    pl.Config.set_tbl_cols(-1)
+    pl.Config.set_tbl_rows(-1)
     args = _parse_args()
     engine = create_engine(
         f"sqlite:///{args.database}",
@@ -31,8 +33,10 @@ def main() -> None:
 
     nmr_spectrum = cagey.nmr.get_spectrum(args.title_file.parent, reaction)
     aldehyde_peak_df = _get_peak_df(nmr_spectrum.aldehyde_peaks)
+    print("aldehyde peaks")
     print(aldehyde_peak_df)
     imine_peak_df = _get_peak_df(nmr_spectrum.imine_peaks)
+    print("imine peaks")
     print(imine_peak_df)
 
 
