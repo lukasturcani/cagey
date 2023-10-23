@@ -9,14 +9,14 @@ from cagey._internal.tables import (
     Precursor,
     Reaction,
     SeparationMassSpecPeak,
-    make_tables,
+    add_tables,
 )
 
 __all__ = [
     "ms",
     "nmr",
     "reactions",
-    "make_tables",
+    "add_tables",
     "SeparationMassSpecPeak",
     "MassSpecPeak",
     "MassSpecTopologyAssignment",

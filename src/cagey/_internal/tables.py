@@ -119,7 +119,7 @@ class MassSpecTopologyAssignment(SQLModel, table=True):
     topology: str
 
 
-def make_tables(database: Path) -> None:
+def add_tables(database: Path) -> None:
     engine = create_engine(
         f"sqlite:///{database}",
         connect_args={"check_same_thread": False},

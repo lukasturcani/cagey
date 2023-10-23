@@ -19,7 +19,7 @@ def main() -> None:
     )
     old_results = _get_old_ms_results(args.csv_results)
     new_results = _get_new_ms_results(engine)
-    old_results.join(
+    summary = old_results.join(
         new_results,
         on=[
             "experiment",
@@ -33,7 +33,7 @@ def main() -> None:
         how="left",
     )
     print(
-        old_results.select(
+        summary.select(
             [
                 "experiment",
                 "plate",
@@ -43,33 +43,20 @@ def main() -> None:
                 "adduct",
                 "charge",
                 "spectrum_mz",
+                "intensity",
+                "spectrum_mz_right",
+                "intensity_right",
             ]
-        )
-        .filter(
-            (pl.col("plate") == pl.lit(1))
-            & (pl.col("formulation_number") == pl.lit(9))
-        )
-        .collect()
+        ).collect()
     )
-    print(
-        new_results.select(
-            [
-                "experiment",
-                "plate",
-                "formulation_number",
-                "di_count",
-                "tri_count",
-                "adduct",
-                "charge",
-                "spectrum_mz",
-            ]
+    matches = (
+        summary.with_columns(
+            match=pl.col("spectrum_mz").eq(pl.col("spectrum_mz_right"))
         )
-        .filter(
-            (pl.col("plate") == pl.lit(1))
-            & (pl.col("formulation_number") == pl.lit(9))
-        )
-        .collect()
+        .group_by("match")
+        .agg(pl.count())
     )
+    print(matches.collect())
 
 
 def _parse_args() -> argparse.Namespace:
@@ -111,16 +98,22 @@ def _get_old_ms_results(paths: Iterable[Path]) -> pl.LazyFrame:
 
 
 def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
-    mass_spectrums = (
-        pl.read_database("SELECT * from massspectrum", engine.connect())
+    mass_spectra = (
+        pl.read_database(
+            "SELECT massspectrum.id, experiment, plate, formulation_number "
+            "FROM massspectrum "
+            "LEFT JOIN reaction "
+            "ON massspectrum.reaction_id = reaction.id",
+            engine.connect(),
+        )
         .lazy()
         .rename({"id": "mass_spectrum_id"})
     )
-    corrected_peaks = pl.read_database(
-        "SELECT * from correctedmassspecpeak", engine.connect()
+    separation_peaks = pl.read_database(
+        "SELECT * from separationmassspecpeak", engine.connect()
     ).lazy()
-    return mass_spectrums.join(
-        corrected_peaks, on="mass_spectrum_id", how="inner"
+    return separation_peaks.join(
+        mass_spectra, on="mass_spectrum_id", how="left"
     )
 
 
