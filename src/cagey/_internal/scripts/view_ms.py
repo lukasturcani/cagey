@@ -59,7 +59,7 @@ class ReactionData:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=Path)
-    parser.add_argument("mass_spec_csv", type=Path)
+    parser.add_argument("csv", type=Path)
     return parser.parse_args()
 
 
