@@ -12,12 +12,15 @@ def main() -> None:
         except ValueError:
             data, _ = csv.stem.split("_")
             *experiment_, plate, formulation_number = data.split("-")
+            if len(experiment_) != 3:
+                print(f"bad file: {csv}")
+                continue
             experiment = "-".join(experiment_)
 
         stem = "_".join(
             [
                 experiment,
-                plate.removeprefix("P").replace("2B", "4"),
+                plate.removeprefix("P").replace("2B", "4").zfill(2),
                 formulation_number.zfill(2),
             ]
         )

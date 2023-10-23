@@ -108,6 +108,10 @@ def _get_old_nmr_results(paths: Iterable[OldData]) -> Results:
         )
         .with_columns(experiment=pl.lit(path.experiment))
         for path in paths
+    ).with_columns(
+        pl.when(pl.col("experiment") == "AB-02-007")
+        .then(pl.col("plate").map_dict({2: 4}, default=pl.first()))
+        .otherwise(pl.col("plate"))
     )
     return Results(
         summary=results.select(

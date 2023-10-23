@@ -14,12 +14,13 @@ def main() -> None:
             *experiment_, plate, formulation_number = title.strip().split("-")
             if len(experiment_) != 3:
                 print(f"bad file: {title_file}")
+                continue
             experiment = "-".join(experiment_)
 
         new_title = "_".join(
             [
                 experiment.replace("AB-01-005", "AB-02-005"),
-                plate.removeprefix("P").replace("2B", "4"),
+                plate.removeprefix("P").replace("2B", "4").zfill(2),
                 formulation_number.zfill(2),
             ]
         )
