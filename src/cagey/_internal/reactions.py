@@ -141,6 +141,13 @@ def add_ab_02_007_data(session: Session, commit: bool = True) -> None:
         session=session,
         start_tri_index=3,
     )
+    _add_data_helper(
+        dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
+        tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
+        experiment="AB-02-007",
+        plate=4,
+        session=session,
+    )
     if commit:
         session.commit()
 
