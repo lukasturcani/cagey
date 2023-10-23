@@ -12,10 +12,13 @@ def main() -> None:
             plate, formulation_number = plate_data.split("-")
         except ValueError:
             *experiment_, plate, formulation_number = title.strip().split("-")
-            if len(experiment_) != 3:
+            if len(experiment_) == 2 and plate == "P2":
+                experiment = "AB-02-009"
+            elif len(experiment_) != 3:
                 print(f"bad file: {title_file}")
                 continue
-            experiment = "-".join(experiment_)
+            else:
+                experiment = "-".join(experiment_)
 
         new_title = "_".join(
             [
