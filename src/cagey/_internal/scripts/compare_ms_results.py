@@ -18,6 +18,7 @@ def main() -> None:
         poolclass=StaticPool,
     )
     old_results = _get_old_ms_results(args.csv_results)
+    new_results = _get_new_ms_results(engine)
     old_results.join(
         new_results,
         on=[

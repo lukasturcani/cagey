@@ -31,6 +31,7 @@ def main() -> None:
             & (pl.col("has_imine") == pl.col("has_imine_new"))
         ),
     )
+    print(combined_summary.filter(pl.col("match").is_null()).collect())
     spectrum_results = combined_summary.group_by("match").agg(pl.count())
     print("imine / aldehyde found summary")
     print(spectrum_results.collect())
