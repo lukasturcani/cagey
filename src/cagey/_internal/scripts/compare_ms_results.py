@@ -19,18 +19,35 @@ def main() -> None:
     )
     old_results = _get_old_ms_results(args.csv_results)
     new_results = _get_new_ms_results(engine)
-    summary = old_results.join(
-        new_results,
-        on=[
-            "experiment",
-            "plate",
-            "formulation_number",
-            "di_count",
-            "tri_count",
-            "adduct",
-            "charge",
-        ],
-        how="left",
+    summary = (
+        old_results.join(
+            new_results,
+            on=[
+                "experiment",
+                "plate",
+                "formulation_number",
+                "di_count",
+                "tri_count",
+                "adduct",
+                "charge",
+            ],
+            how="left",
+        )
+        .with_columns(
+            spectrum_mz_diff=pl.col("spectrum_mz")
+            .sub(pl.col("spectrum_mz_right"))
+            .abs(),
+            intensity_diff=pl.col("intensity")
+            .sub(pl.col("intensity_right"))
+            .abs(),
+        )
+        .filter(
+            pl.col("spectrum_mz_diff")
+            .is_null()
+            .or_(pl.col("spectrum_mz_diff").gt(1e-8))
+            .or_(pl.col("intensity_diff").is_null())
+            .or_(pl.col("intensity_diff").gt(1e-8))
+        )
     )
     print(
         summary.select(
@@ -46,17 +63,11 @@ def main() -> None:
                 "intensity",
                 "spectrum_mz_right",
                 "intensity_right",
+                "spectrum_mz_diff",
+                "intensity_diff",
             ]
         ).collect()
     )
-    matches = (
-        summary.with_columns(
-            match=pl.col("spectrum_mz").eq(pl.col("spectrum_mz_right"))
-        )
-        .group_by("match")
-        .agg(pl.count())
-    )
-    print(matches.collect())
 
 
 def _parse_args() -> argparse.Namespace:
