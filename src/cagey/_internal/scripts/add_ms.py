@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import polars as pl
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
 from sqlmodel.pool import StaticPool
@@ -34,7 +35,9 @@ def main() -> None:
         }
         for path, reaction_key in zip(args.csv, reaction_keys, strict=True):
             reaction, di, tri = reactions[reaction_key]
-            session.add(cagey.ms.get_spectrum(path, reaction, di, tri))
+            spectrum = cagey.ms.get_spectrum(path, reaction, di, tri)
+            session.add(spectrum)
+            session.add_all(cagey.ms.get_topologies(spectrum))
         session.commit()
 
 

@@ -62,21 +62,16 @@ class MassSpectrum(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     reaction_id: int = Field(foreign_key="reaction.id")
 
-    separation_peaks: list["SeparationMassSpecPeak"] = Relationship(
-        back_populates="mass_spectrum"
-    )
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
 
 
-class SeparationMassSpecPeak(SQLModel, table=True):
+class MassSpecPeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
     di_count: int
     tri_count: int
     adduct: str
     charge: int
-    di_name: str = Field(foreign_key="precursor.name")
-    tri_name: str = Field(foreign_key="precursor.name")
     calculated_mz: float
     spectrum_mz: float
     separation_mz: float
@@ -93,24 +88,6 @@ class SeparationMassSpecPeak(SQLModel, table=True):
 
     def get_separation(self) -> float:
         return self.separation_mz - self.spectrum_mz
-
-
-class MassSpecPeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    di_name: str = Field(foreign_key="precursor.name")
-    tri_name: str = Field(foreign_key="precursor.name")
-    calculated_mz: float
-    spectrum_mz: float
-    intensity: float
-
-    mass_spectrum: MassSpectrum = Relationship(
-        back_populates="peaks",
-    )
 
 
 class MassSpecTopologyAssignment(SQLModel, table=True):

@@ -1,6 +1,5 @@
-from collections import defaultdict
-from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
 
@@ -21,14 +20,13 @@ from cagey._internal.tables import (
     MassSpectrum,
     Precursor,
     Reaction,
-    SeparationMassSpecPeak,
 )
 
 ADDUCTS = (
     EmpiricalFormula("H1"),
     EmpiricalFormula("H2"),
     EmpiricalFormula("H3"),
-    EmpiricalFormula("H3"),
+    EmpiricalFormula("H4"),
     EmpiricalFormula("K1"),
     EmpiricalFormula("K2"),
     EmpiricalFormula("K3"),
@@ -39,8 +37,20 @@ ADDUCTS = (
 )
 H_MONO_WEIGHT = EmpiricalFormula("H").getMonoWeight()
 CHARGES = (1, 2, 3, 4)
-CHARGE1_BANNED_ADDUCTS = {"H2", "K2", "Na2", "H3", "K3", "Na3"}
-CHARGE2_BANNED_ADDUCTS = {"H1", "H3", "K1", "K3", "Na1", "Na3"}
+CHARGE1_BANNED_ADDUCTS = {"H2", "K2", "Na2", "H3", "K3", "Na3", "H4"}
+CHARGE2_BANNED_ADDUCTS = {"H1", "H3", "K1", "K3", "Na1", "Na3", "H4"}
+CHARGE3_BANNED_ADDUCTS = {"H1", "H2", "Na1", "Na2", "K1", "K2", "H4"}
+CHARGE4_BANNED_ADDUCTS = {
+    "H1",
+    "H2",
+    "H3",
+    "Na1",
+    "Na2",
+    "Na3",
+    "K1",
+    "K2",
+    "K3",
+}
 PRECURSOR_COUNTS = (
     (2, 3),
     (4, 6),
@@ -67,6 +77,10 @@ def get_spectrum(
             continue
         if charge == 2 and str(adduct.toString()) in CHARGE2_BANNED_ADDUCTS:
             continue
+        if charge == 3 and str(adduct.toString()) in CHARGE3_BANNED_ADDUCTS:
+            continue
+        if charge == 4 and str(adduct.toString()) in CHARGE4_BANNED_ADDUCTS:
+            continue
 
         di_data = PrecursorData(di_formula, di_count, 2)
         tri_data = PrecursorData(tri_formula, tri_count, 3)
@@ -81,58 +95,24 @@ def get_spectrum(
         separation_peaks = peaks.filter(
             pl.col("mz").is_between(separation_mz - 0.1, separation_mz + 0.1)
         )
-        if separation_peaks.is_empty():
-            mass_spectrum.peaks.append(
-                MassSpecPeak(
-                    di_count=di_count,
-                    tri_count=tri_count,
-                    adduct=str(adduct.toString()),
-                    charge=charge,
-                    di_name=reaction.di_name,
-                    tri_name=reaction.tri_name,
-                    calculated_mz=cage_mz,
-                    spectrum_mz=cage_peak["mz"],
-                    intensity=cage_peak["height"],
+        if not separation_peaks.is_empty():
+            separation_mz = separation_peaks.row(0, named=True)["mz"]
+            ppm_error = (cage_mz - cage_peak["mz"]) / cage_mz * 1e6
+            separation = separation_mz - cage_peak["mz"]
+            if ppm_error < 10 and abs(separation - 1 / charge) < 0.02:
+                mass_spectrum.peaks.append(
+                    MassSpecPeak(
+                        di_count=di_count,
+                        tri_count=tri_count,
+                        adduct=str(adduct.toString()),
+                        charge=charge,
+                        calculated_mz=cage_mz,
+                        spectrum_mz=cage_peak["mz"],
+                        separation_mz=separation_mz,
+                        intensity=cage_peak["height"],
+                    )
                 )
-            )
-        else:
-            mass_spectrum.separation_peaks.append(
-                SeparationMassSpecPeak(
-                    di_count=di_count,
-                    tri_count=tri_count,
-                    adduct=str(adduct.toString()),
-                    charge=charge,
-                    di_name=reaction.di_name,
-                    tri_name=reaction.tri_name,
-                    calculated_mz=cage_mz,
-                    spectrum_mz=cage_peak["mz"],
-                    separation_mz=separation_peaks.row(0, named=True)["mz"],
-                    intensity=cage_peak["height"],
-                )
-            )
     return mass_spectrum
-
-
-def add_topology_assignments(
-    session: Session,
-    commit: bool = True,
-) -> None:
-    query = select(SeparationMassSpecPeak).where(
-        not_(
-            and_(
-                SeparationMassSpecPeak.tri_count == 3,
-                SeparationMassSpecPeak.di_count == 5,
-            )
-        ),
-        or_(
-            SeparationMassSpecPeak.charge == 1,
-            SeparationMassSpecPeak.charge == 2,
-        ),
-    )
-    session.add_all(_assign_cage_topology(session.exec(query)))
-
-    if commit:
-        session.commit()
 
 
 def _get_precursor_formula(
@@ -200,60 +180,36 @@ def _get_cage_mz(
     return cage_weight / charge
 
 
-@dataclass(slots=True)
-class PossibleAssignments:
-    topologies: list[MassSpecTopologyAssignment] = field(default_factory=list)
-    has_four_plus_six: bool = False
-    has_single_charged_2_plus_3: bool = False
-    has_double_charged_2_plus_3: bool = False
-
-
-def _assign_cage_topology(
-    peaks: Iterable[SeparationMassSpecPeak],
+def get_topologies(
+    spectrum: MassSpectrum,
 ) -> Iterator[MassSpecTopologyAssignment]:
-    possible_assignmnets: dict[ReactionKey, PossibleAssignments] = defaultdict(
-        PossibleAssignments
+    valid_peaks = tuple(
+        peak
+        for peak in spectrum.peaks
+        if (peak.tri_count, peak.di_count) != (3, 5) and peak.charge in {1, 2}
     )
-    for peak in filter(
-        lambda peak: (
-            peak.get_ppm_error() < 10
-            and abs(peak.get_separation() - 1 / peak.charge) < 0.02
-        ),
-        peaks,
-    ):
-        reaction_key = ReactionKey(
-            experiment=peak.mass_spectrum.experiment,
-            plate=peak.mass_spectrum.plate,
-            formulation_number=peak.mass_spectrum.formulation_number,
-        )
-        possible_assignment = possible_assignmnets[reaction_key]
 
+    has_four_plus_six = any(
+        peak.tri_count == 4 and peak.di_count == 6 for peak in valid_peaks
+    )
+    has_singly_charged_2_plus_3 = any(
+        peak.charge == 1 and peak.tri_count == 2 and peak.di_count == 3
+        for peak in valid_peaks
+    )
+    has_doubly_charged_2_plus_3 = any(
+        peak.charge == 2 and peak.tri_count == 2 and peak.di_count == 3
+        for peak in valid_peaks
+    )
+    avoid_2_plus_3 = (
+        has_four_plus_six
+        and has_singly_charged_2_plus_3
+        and not has_doubly_charged_2_plus_3
+    )
+    for peak in valid_peaks:
         topology = f"{peak.tri_count}+{peak.di_count}"
-        if topology == "4+6":
-            possible_assignment.has_four_plus_six = True
-        if topology == "2+3" and peak.charge == 1:
-            possible_assignment.has_single_charged_2_plus_3 = True
-        if topology == "2+3" and peak.charge == 2:
-            possible_assignment.has_double_charged_2_plus_3 = True
-
-        possible_assignment.topologies.append(
-            MassSpecTopologyAssignment(
-                mass_spec_peak_id=peak.id,
-                topology=topology,
-            )
-        )
-
-    for assignment in possible_assignmnets.values():
-        topologies: Iterable[MassSpecTopologyAssignment]
-        topologies = assignment.topologies
-        if (
-            assignment.has_four_plus_six
-            and assignment.has_single_charged_2_plus_3
-            and not assignment.has_double_charged_2_plus_3
-        ):
-            topologies = filter(
-                lambda topology: topology.topology != "2+3",
-                topologies,
-            )
+        if avoid_2_plus_3 and topology == "2+3":
             continue
-        yield from topologies
+        yield MassSpecTopologyAssignment(
+            mass_spec_peak_id=peak.id,
+            topology=f"{peak.tri_count}+{peak.di_count}",
+        )

@@ -10,7 +10,7 @@ from sqlmodel import Session, create_engine, select
 from sqlmodel.pool import StaticPool
 
 import cagey
-from cagey import MassSpecPeak, Precursor, Reaction, SeparationMassSpecPeak
+from cagey import MassSpecPeak, Precursor, Reaction
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    reaction_data = ReactionData.from_path(args.mass_spec_csv)
+    reaction_data = ReactionData.from_path(args.csv)
     with Session(engine) as session:
         Di = aliased(Precursor)
         Tri = aliased(Precursor)
@@ -35,9 +35,7 @@ def main() -> None:
         )
         reaction, di, tri = session.exec(reaction_query).one()
 
-    mass_spectrum = cagey.ms.get_spectrum(
-        args.mass_spec_csv, reaction, di, tri
-    )
+    mass_spectrum = cagey.ms.get_spectrum(args.csv, reaction, di, tri)
     peak_df = _get_peak_df(mass_spectrum.peaks)
     print(peak_df)
     corrected_peak_df = _get_separation_peak_df(mass_spectrum.separation_peaks)
@@ -80,7 +78,7 @@ def _get_peak_df(peaks: Sequence[MassSpecPeak]) -> pl.DataFrame:
 
 
 def _get_separation_peak_df(
-    peaks: Sequence[SeparationMassSpecPeak],
+    peaks: Sequence[MassSpecPeak],
 ) -> pl.DataFrame:
     return pl.DataFrame(
         {
