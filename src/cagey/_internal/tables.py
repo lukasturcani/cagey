@@ -77,9 +77,7 @@ class MassSpecPeak(SQLModel, table=True):
     separation_mz: float
     intensity: float
 
-    mass_spectrum: MassSpectrum = Relationship(
-        back_populates="separation_peaks",
-    )
+    mass_spectrum: MassSpectrum = Relationship(back_populates="peaks")
 
     def get_ppm_error(self) -> float:
         return abs(
