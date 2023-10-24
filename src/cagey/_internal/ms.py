@@ -97,7 +97,7 @@ def get_spectrum(
         )
         if not separation_peaks.is_empty():
             separation_mz = separation_peaks.row(0, named=True)["mz"]
-            ppm_error = (cage_mz - cage_peak["mz"]) / cage_mz * 1e6
+            ppm_error = abs((cage_mz - cage_peak["mz"]) / cage_mz * 1e6)
             separation = separation_mz - cage_peak["mz"]
             if ppm_error < 10 and abs(separation - 1 / charge) < 0.02:
                 mass_spectrum.peaks.append(
@@ -205,9 +205,27 @@ def get_topologies(
         and has_singly_charged_2_plus_3
         and not has_doubly_charged_2_plus_3
     )
+    has_eight_plus_twelve = any(
+        peak.tri_count == 8 and peak.di_count == 12 for peak in valid_peaks
+    )
+    has_singly_charged_4_plus_6 = any(
+        peak.charge == 1 and peak.tri_count == 4 and peak.di_count == 6
+        for peak in valid_peaks
+    )
+    has_doubly_charged_4_plus_6 = any(
+        peak.charge == 2 and peak.tri_count == 4 and peak.di_count == 6
+        for peak in valid_peaks
+    )
+    avoid_4_plus_6 = (
+        has_eight_plus_twelve
+        and has_singly_charged_4_plus_6
+        and not has_doubly_charged_4_plus_6
+    )
     for peak in valid_peaks:
         topology = f"{peak.tri_count}+{peak.di_count}"
         if avoid_2_plus_3 and topology == "2+3":
+            continue
+        if avoid_4_plus_6 and topology == "4+6":
             continue
         yield MassSpecTopologyAssignment(
             mass_spec_peak_id=peak.id,

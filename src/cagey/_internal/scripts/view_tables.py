@@ -59,17 +59,45 @@ def main() -> None:
         print("massspecpeak")
         print(mass_spec_peaks)
     if "ms_topology" in args.tables:
-        mass_spec_topology_assignments = pl.read_database(
-            "SELECT experiment, plate, formulation_number, adduct, charge, topology "
-            "FROM massspectopologyassignment "
-            "LEFT JOIN massspecpeak "
-            "ON mass_spec_peak_id = massspecpeak.id "
-            "LEFT JOIN massspectrum "
-            "ON mass_spectrum_id = massspectrum.id "
-            "LEFT JOIN reaction "
-            "ON reaction_id = reaction.id",
-            engine.connect(),
-        ).sort(["experiment", "plate", "formulation_number"])
+        mass_spec_topology_assignments = (
+            pl.read_database(
+                "SELECT experiment, plate, formulation_number, topology "
+                "FROM massspectopologyassignment "
+                "LEFT JOIN massspecpeak "
+                "ON mass_spec_peak_id = massspecpeak.id "
+                "LEFT JOIN massspectrum "
+                "ON mass_spectrum_id = massspectrum.id "
+                "LEFT JOIN reaction "
+                "ON reaction_id = reaction.id",
+                engine.connect(),
+            )
+            .sort(["experiment", "plate", "formulation_number"])
+            .unique()
+        )
+        mass_spec_topology_assignments = (
+            pl.read_database(
+                "SELECT experiment, plate, formulation_number, di_name, "
+                "       tri_name, adduct, charge, spectrum_mz, topology, calculated_mz "
+                "FROM massspectopologyassignment "
+                "LEFT JOIN massspecpeak "
+                "ON mass_spec_peak_id = massspecpeak.id "
+                "LEFT JOIN massspectrum "
+                "ON mass_spectrum_id = massspectrum.id "
+                "LEFT JOIN reaction "
+                "ON reaction_id = reaction.id",
+                engine.connect(),
+            )
+            .sort(["experiment", "plate", "formulation_number"])
+            .with_columns(
+                ppm_error=(
+                    (pl.col("calculated_mz") - pl.col("spectrum_mz"))
+                    / pl.col("calculated_mz")
+                    * pl.lit(1e6)
+                ).abs()
+            )
+            .group_by(["experiment", "plate", "formulation_number"])
+            .agg(pl.col("topology").unique())
+        )
         print("massspectopologyassignment")
         print(mass_spec_topology_assignments)
 
