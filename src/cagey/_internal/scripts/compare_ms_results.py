@@ -91,7 +91,7 @@ def _get_old_ms_results(paths: Iterable[Path]) -> pl.LazyFrame:
                 "M/Z Present?": "spectrum_mz",
             }
         )
-        .filter(pl.col("Correct_Seperation?"))
+        .filter(pl.col("Correct_Seperation?").eq(True))
         .filter(pl.col("adduct").is_not_null())
         .with_columns(
             experiment=pl.lit(path.stem),
