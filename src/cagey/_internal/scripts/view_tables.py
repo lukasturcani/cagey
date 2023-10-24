@@ -46,22 +46,30 @@ def main() -> None:
         )
         print("reaction")
         print(reactions.sort(["experiment", "plate", "formulation_number"]))
-    if "mass_spec" in args.tables:
+    if "ms" in args.tables:
         mass_spec = pl.read_database(
             "SELECT * FROM massspectrum", engine.connect()
         )
         print("massspectrum")
         print(mass_spec)
-    if "mass_spec_peak" in args.tables:
+    if "ms_peak" in args.tables:
         mass_spec_peaks = pl.read_database(
             "SELECT * FROM massspecpeak", engine.connect()
         )
         print("massspecpeak")
         print(mass_spec_peaks)
-    if "mass_spec_topology" in args.tables:
+    if "ms_topology" in args.tables:
         mass_spec_topology_assignments = pl.read_database(
-            "SELECT * FROM massspectopologyassignment", engine.connect()
-        )
+            "SELECT experiment, plate, formulation_number, adduct, charge, topology "
+            "FROM massspectopologyassignment "
+            "LEFT JOIN massspecpeak "
+            "ON mass_spec_peak_id = massspecpeak.id "
+            "LEFT JOIN massspectrum "
+            "ON mass_spectrum_id = massspectrum.id "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id",
+            engine.connect(),
+        ).sort(["experiment", "plate", "formulation_number"])
         print("massspectopologyassignment")
         print(mass_spec_topology_assignments)
 
@@ -84,9 +92,9 @@ def _parse_args() -> argparse.Namespace:
             "imine",
             "precursor",
             "reaction",
-            "mass_spec",
-            "mass_spec_peak",
-            "mass_spec_topology",
+            "ms",
+            "ms_peak",
+            "ms_topology",
         ],
         nargs="*",
         default=[
@@ -95,9 +103,9 @@ def _parse_args() -> argparse.Namespace:
             "imine",
             "precursor",
             "reaction",
-            "mass_spec",
-            "mass_spec_peak",
-            "mass_spec_topology",
+            "ms",
+            "ms_peak",
+            "ms_topology",
         ],
     )
     return parser.parse_args()
