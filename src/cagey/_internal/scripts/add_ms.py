@@ -28,6 +28,7 @@ def main() -> None:
         or_(*map(_get_reaction_query, reaction_keys))
     )
 
+    spectrums = []
     with Session(engine) as session:
         reactions = {
             ReactionKey.from_reaction(result[0]): result
@@ -36,7 +37,11 @@ def main() -> None:
         for path, reaction_key in zip(args.csv, reaction_keys, strict=True):
             reaction, di, tri = reactions[reaction_key]
             spectrum = cagey.ms.get_spectrum(path, reaction, di, tri)
+            spectrums.append(spectrum)
             session.add(spectrum)
+        session.commit()
+
+        for spectrum in spectrums:
             session.add_all(cagey.ms.get_topologies(spectrum))
         session.commit()
 
