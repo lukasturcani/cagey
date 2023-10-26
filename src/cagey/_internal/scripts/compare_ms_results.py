@@ -19,113 +19,68 @@ def main() -> None:
     )
     old_results = _get_old_ms_results(args.csv_results)
     new_results = _get_new_ms_results(engine)
-    summary = (
-        old_results.join(
-            new_results,
-            on=[
-                "experiment",
-                "plate",
-                "formulation_number",
-                "di_count",
-                "tri_count",
-                "adduct",
-                "charge",
-            ],
-            how="left",
+    summary = old_results.join(
+        new_results,
+        on=["experiment", "plate", "formulation_number"],
+        how="left",
+    ).with_columns(
+        match=(
+            pl.col("topology").list.sort()
+            == pl.col("topology_right").list.sort()
         )
-        .with_columns(
-            spectrum_mz_diff=pl.col("spectrum_mz")
-            .sub(pl.col("spectrum_mz_right"))
-            .abs(),
-            intensity_diff=pl.col("intensity")
-            .sub(pl.col("intensity_right"))
-            .abs(),
-        )
-        .filter(
-            pl.col("spectrum_mz_diff")
-            .is_null()
-            .or_(pl.col("spectrum_mz_diff").gt(1e-8))
-            .or_(pl.col("intensity_diff").is_null())
-            .or_(pl.col("intensity_diff").gt(1e-8))
-        )
+        | (pl.col("topology").is_null() == pl.col("topology_right").is_null()),
     )
     print(
-        summary.select(
-            [
-                "experiment",
-                "plate",
-                "formulation_number",
-                "di_count",
-                "tri_count",
-                "adduct",
-                "charge",
-                "spectrum_mz",
-                "intensity",
-                "spectrum_mz_right",
-                "intensity_right",
-                "spectrum_mz_diff",
-                "intensity_diff",
-            ]
-        ).collect()
+        summary.collect().filter(
+            pl.col("match").eq(False) | pl.col("match").is_null()
+        )
     )
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=Path)
-    parser.add_argument("csv_results", type=Path, nargs="+")
+    parser.add_argument("csv_results", type=Path)
     return parser.parse_args()
 
 
-def _get_old_ms_results(paths: Iterable[Path]) -> pl.LazyFrame:
-    return pl.concat(
+def _get_old_ms_results(path: Path) -> pl.LazyFrame:
+    return (
         pl.scan_csv(path)
         .rename(
             {
-                "Plate": "plate",
-                "Intensity": "intensity",
-                "Adduct": "adduct",
-                "Charge": "charge",
+                "Experiment_Name": "experiment",
+                "Formulation_Number": "formulation_number",
+                "Plate_Name": "plate",
                 "Topology": "topology",
-                "Position": "formulation_number",
-                "M/Z Present?": "spectrum_mz",
             }
         )
-        .filter(pl.col("Correct_Seperation?").eq(True))
-        .filter(pl.col("adduct").is_not_null())
         .with_columns(
-            experiment=pl.lit(path.stem),
-            counts=pl.col("topology")
-            .str.strip_chars("()")
-            .str.split(", ")
-            .list.eval(pl.element().cast(pl.Int64)),
+            pl.col("plate")
+            .str.strip_prefix("PLATE")
+            .str.replace("2B", "4")
+            .cast(pl.Int64),
+            pl.col("topology").str.strip_chars("[]").str.split(", "),
         )
-        .with_columns(
-            tri_count=pl.col("counts").list.get(0),
-            di_count=pl.col("counts").list.get(1),
-        )
-        for path in paths
     )
 
 
 def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
-    mass_spectra = (
+    return (
         pl.read_database(
-            "SELECT massspectrum.id, experiment, plate, formulation_number "
-            "FROM massspectrum "
+            "SELECT experiment, plate, formulation_number, topology "
+            "FROM massspectopologyassignment "
+            "LEFT JOIN massspecpeak "
+            "ON mass_spec_peak_id = massspecpeak.id "
+            "LEFT JOIN massspectrum "
+            "ON mass_spectrum_id = massspectrum.id "
             "LEFT JOIN reaction "
-            "ON massspectrum.reaction_id = reaction.id",
+            "ON reaction_id = reaction.id",
             engine.connect(),
         )
-        .lazy()
-        .rename({"id": "mass_spectrum_id"})
-    )
-    separation_peaks = pl.read_database(
-        "SELECT * from separationmassspecpeak", engine.connect()
+        .group_by(["experiment", "plate", "formulation_number"])
+        .agg(pl.col("topology").unique())
     ).lazy()
-    return separation_peaks.join(
-        mass_spectra, on="mass_spectrum_id", how="left"
-    )
 
 
 if __name__ == "__main__":
