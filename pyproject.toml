@@ -33,6 +33,7 @@ dev = [
   "build",
   "twine",
   "furo",
+  "notebook",
 ]
 
 [project.scripts]

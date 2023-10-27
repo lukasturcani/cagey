@@ -1,7 +1,5 @@
 import argparse
-from collections.abc import Sequence
 from dataclasses import dataclass
-from operator import attrgetter
 from pathlib import Path
 
 import polars as pl
@@ -10,7 +8,7 @@ from sqlmodel import Session, create_engine, select
 from sqlmodel.pool import StaticPool
 
 import cagey
-from cagey import MassSpecPeak, Precursor, Reaction
+from cagey import Precursor, Reaction
 
 
 def main() -> None:
@@ -35,11 +33,8 @@ def main() -> None:
         )
         reaction, di, tri = session.exec(reaction_query).one()
 
-    mass_spectrum = cagey.ms.get_spectrum(args.csv, reaction, di, tri)
-    peak_df = _get_peak_df(mass_spectrum.peaks)
+    peak_df = cagey.ms.get_spectrum(args.csv, reaction, di, tri).to_df()
     print(peak_df)
-    corrected_peak_df = _get_separation_peak_df(mass_spectrum.separation_peaks)
-    print(corrected_peak_df)
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,41 +54,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("database", type=Path)
     parser.add_argument("csv", type=Path)
     return parser.parse_args()
-
-
-def _get_peak_df(peaks: Sequence[MassSpecPeak]) -> pl.DataFrame:
-    return pl.DataFrame(
-        {
-            "di_count": list(map(attrgetter("di_count"), peaks)),
-            "tri_count": list(map(attrgetter("tri_count"), peaks)),
-            "adduct": list(map(attrgetter("adduct"), peaks)),
-            "charge": list(map(attrgetter("charge"), peaks)),
-            "di_name": list(map(attrgetter("di_name"), peaks)),
-            "tri_name": list(map(attrgetter("tri_name"), peaks)),
-            "calculated_mz": list(map(attrgetter("calculated_mz"), peaks)),
-            "spectrum_mz": list(map(attrgetter("spectrum_mz"), peaks)),
-            "intensity": list(map(attrgetter("intensity"), peaks)),
-        }
-    )
-
-
-def _get_separation_peak_df(
-    peaks: Sequence[MassSpecPeak],
-) -> pl.DataFrame:
-    return pl.DataFrame(
-        {
-            "di_count": list(map(attrgetter("di_count"), peaks)),
-            "tri_count": list(map(attrgetter("tri_count"), peaks)),
-            "adduct": list(map(attrgetter("adduct"), peaks)),
-            "charge": list(map(attrgetter("charge"), peaks)),
-            "di_name": list(map(attrgetter("di_name"), peaks)),
-            "tri_name": list(map(attrgetter("tri_name"), peaks)),
-            "calculated_mz": list(map(attrgetter("calculated_mz"), peaks)),
-            "spectrum_mz": list(map(attrgetter("spectrum_mz"), peaks)),
-            "separation_mz": list(map(attrgetter("separation_mz"), peaks)),
-            "intensity": list(map(attrgetter("intensity"), peaks)),
-        }
-    )
 
 
 if __name__ == "__main__":

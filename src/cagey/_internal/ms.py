@@ -6,13 +6,6 @@ from pathlib import Path
 import polars as pl
 import rdkit.Chem.AllChem as rdkit
 from pyopenms import EmpiricalFormula
-from sqlmodel import (
-    Session,
-    and_,
-    not_,
-    or_,
-    select,
-)
 
 from cagey._internal.tables import (
     MassSpecPeak,
@@ -65,8 +58,15 @@ def get_spectrum(
     reaction: Reaction,
     di: Precursor,
     tri: Precursor,
+    calculated_peak_tolerance: float = 0.1,
+    separation_peak_tolerance: float = 0.1,
+    max_ppm_error: float = 10,
+    max_separation: float = 0.02,
+    min_peak_height: float = 1e4,
 ) -> MassSpectrum:
-    peaks = pl.scan_csv(path).filter(pl.col("height") > 1e4).collect()
+    peaks = (
+        pl.scan_csv(path).filter(pl.col("height") > min_peak_height).collect()
+    )
     mass_spectrum = MassSpectrum(reaction_id=reaction.id)
     di_formula = _get_precursor_formula(di)
     tri_formula = _get_precursor_formula(tri)
@@ -86,20 +86,29 @@ def get_spectrum(
         tri_data = PrecursorData(tri_formula, tri_count, 3)
         cage_mz = _get_cage_mz(di_data, tri_data, adduct, charge)
         cage_peaks = peaks.filter(
-            pl.col("mz").is_between(cage_mz - 0.1, cage_mz + 0.1)
+            pl.col("mz").is_between(
+                cage_mz - calculated_peak_tolerance,
+                cage_mz + calculated_peak_tolerance,
+            )
         )
         if cage_peaks.is_empty():
             continue
         cage_peak = cage_peaks.row(0, named=True)
         separation_mz = cage_peak["mz"] + H_MONO_WEIGHT / charge
         separation_peaks = peaks.filter(
-            pl.col("mz").is_between(separation_mz - 0.1, separation_mz + 0.1)
+            pl.col("mz").is_between(
+                separation_mz - separation_peak_tolerance,
+                separation_mz + separation_peak_tolerance,
+            )
         )
         if not separation_peaks.is_empty():
             separation_mz = separation_peaks.row(0, named=True)["mz"]
             ppm_error = abs((cage_mz - cage_peak["mz"]) / cage_mz * 1e6)
             separation = separation_mz - cage_peak["mz"]
-            if ppm_error < 10 and abs(separation - 1 / charge) < 0.02:
+            if (
+                ppm_error <= max_ppm_error
+                and abs(separation - 1 / charge) <= max_separation
+            ):
                 mass_spectrum.peaks.append(
                     MassSpecPeak(
                         di_count=di_count,

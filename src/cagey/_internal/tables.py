@@ -1,5 +1,7 @@
+from operator import attrgetter
 from pathlib import Path
 
+import polars as pl
 from sqlmodel import (
     Field,
     Relationship,
@@ -63,6 +65,23 @@ class MassSpectrum(SQLModel, table=True):
     reaction_id: int = Field(foreign_key="reaction.id")
 
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
+
+    def to_df(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {
+                "di_count": list(map(attrgetter("di_count"), self.peaks)),
+                "tri_count": list(map(attrgetter("tri_count"), self.peaks)),
+                "adduct": list(map(attrgetter("adduct"), self.peaks)),
+                "charge": list(map(attrgetter("charge"), self.peaks)),
+                "calculated_mz": list(
+                    map(attrgetter("calculated_mz"), self.peaks)
+                ),
+                "spectrum_mz": list(
+                    map(attrgetter("spectrum_mz"), self.peaks)
+                ),
+                "intensity": list(map(attrgetter("intensity"), self.peaks)),
+            }
+        )
 
 
 class MassSpecPeak(SQLModel, table=True):
