@@ -69,6 +69,7 @@ class MassSpectrum(SQLModel, table=True):
     def to_df(self) -> pl.DataFrame:
         return pl.DataFrame(
             {
+                "mass_spec_peak_id": list(map(attrgetter("id"), self.peaks)),
                 "di_count": list(map(attrgetter("di_count"), self.peaks)),
                 "tri_count": list(map(attrgetter("tri_count"), self.peaks)),
                 "adduct": list(map(attrgetter("adduct"), self.peaks)),
@@ -78,6 +79,9 @@ class MassSpectrum(SQLModel, table=True):
                 ),
                 "spectrum_mz": list(
                     map(attrgetter("spectrum_mz"), self.peaks)
+                ),
+                "separation_mz": list(
+                    map(attrgetter("separation_mz"), self.peaks)
                 ),
                 "intensity": list(map(attrgetter("intensity"), self.peaks)),
             }
