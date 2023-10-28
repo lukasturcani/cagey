@@ -39,13 +39,10 @@ dev = [
 [project.scripts]
 cagey-rename-ms-csv = "cagey._internal.scripts.rename_ms_csv:main"
 cagey-fix-nmr-title = "cagey._internal.scripts.fix_nmr_title:main"
-cagey-view-ms = "cagey._internal.scripts.view_ms:main"
-cagey-view-nmr = "cagey._internal.scripts.view_nmr:main"
 cagey-add-tables = "cagey._internal.scripts.add_tables:main"
 cagey-add-reactions = "cagey._internal.scripts.add_reactions:main"
 cagey-add-ms = "cagey._internal.scripts.add_ms:main"
 cagey-add-nmr = "cagey._internal.scripts.add_nmr:main"
-cagey-view-tables = "cagey._internal.scripts.view_tables:main"
 compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
 compare-ms-results = "cagey._internal.scripts.compare_ms_results:main"
 

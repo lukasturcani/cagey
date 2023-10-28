@@ -41,6 +41,28 @@ class NmrSpectrum(SQLModel, table=True):
         back_populates="nmr_spectrum"
     )
 
+    def get_aldehyde_peak_df(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {
+                "peak_id": list(map(attrgetter("id"), self.aldehyde_peaks)),
+                "ppm": list(map(attrgetter("ppm"), self.aldehyde_peaks)),
+                "amplitude": list(
+                    map(attrgetter("amplitude"), self.aldehyde_peaks)
+                ),
+            }
+        )
+
+    def get_imine_peak_df(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {
+                "peak_id": list(map(attrgetter("id"), self.imine_peaks)),
+                "ppm": list(map(attrgetter("ppm"), self.imine_peaks)),
+                "amplitude": list(
+                    map(attrgetter("amplitude"), self.imine_peaks)
+                ),
+            }
+        )
+
 
 class NmrAldehydePeak(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -66,7 +88,7 @@ class MassSpectrum(SQLModel, table=True):
 
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
 
-    def to_df(self) -> pl.DataFrame:
+    def get_peak_df(self) -> pl.DataFrame:
         return pl.DataFrame(
             {
                 "mass_spec_peak_id": list(map(attrgetter("id"), self.peaks)),

@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from cagey._internal.ms import get_spectrum as _get_ms_spectrum
 from cagey._internal.ms import get_topologies
+from cagey._internal.nmr import get_spectrum as _get_nmr_spectrum
 from cagey._internal.tables import MassSpectrum, Precursor, Reaction
 
 
@@ -21,6 +22,11 @@ class ReactionData:
     @staticmethod
     def from_ms_path(path: Path) -> "ReactionData":
         experiment, plate, formulation_number = path.stem.split("_")
+        return ReactionData(experiment, int(plate), int(formulation_number))
+
+    @staticmethod
+    def from_nmr_title(path: Path) -> "ReactionData":
+        experiment, plate, formulation_number = path.read_text().split("_")
         return ReactionData(experiment, int(plate), int(formulation_number))
 
 
@@ -89,7 +95,7 @@ def get_ms_topology_assignments_from_file(
         }
     )
     return assignments.join(
-        spectrum.to_df(), on="mass_spec_peak_id", how="left"
+        spectrum.get_peak_df(), on="mass_spec_peak_id", how="left"
     )
 
 
@@ -112,12 +118,118 @@ def get_ms_topology_assignments_from_database(
         )
         .sort(["experiment", "plate", "formulation_number"])
         .with_columns(
-            ppm_error=(
-                (pl.col("calculated_mz") - pl.col("spectrum_mz"))
-                / pl.col("calculated_mz")
-                * pl.lit(1e6)
-            ).abs(),
-            separation=(pl.col("separation_mz") - pl.col("spectrum_mz"))
-            - (1 / pl.col("charge")),
+            ppm_error=get_ppm_error(),
+            separation=get_separation(),
         )
+    )
+
+
+def get_nmr_aldehyde_peaks_from_database(engine: Engine) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, di_name, tri_name, "
+        "       ppm, amplitude "
+        "FROM nmraldehydepeak "
+        "LEFT JOIN nmrspectrum "
+        "ON nmr_spectrum_id = nmrspectrum.id "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_nmr_imine_peaks_from_database(engine: Engine) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, di_name, tri_name, "
+        "       ppm, amplitude "
+        "FROM nmriminepeak "
+        "LEFT JOIN nmrspectrum "
+        "ON nmr_spectrum_id = nmrspectrum.id "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_reactions_from_database(engine: Engine) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, "
+        "       di_name, di.smiles AS di_smiles, "
+        "tri_name, tri.smiles AS tri_smiles "
+        "FROM reaction "
+        "LEFT JOIN precursor di "
+        "ON di.name = reaction.di_name "
+        "LEFT JOIN precursor tri "
+        "ON tri.name = reaction.tri_name",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_ms_peaks_from_database(engine: Engine) -> pl.DataFrame:
+    return (
+        pl.read_database(
+            "SELECT experiment, plate, formulation_number, di_name, "
+            "       tri_name, adduct, charge, calculated_mz, spectrum_mz, "
+            "       separation_mz, intensity "
+            "FROM massspecpeak "
+            "LEFT JOIN massspectrum "
+            "ON mass_spectrum_id = massspectrum.id "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id",
+            engine.connect(),
+        )
+        .sort(["experiment", "plate", "formulation_number"])
+        .with_columns(
+            ppm_error=get_ppm_error(),
+            separation=get_separation(),
+        )
+    )
+
+
+def get_nmr_aldehyde_peaks_from_file(
+    path: Path,
+    engine: Engine,
+) -> pl.DataFrame:
+    reaction_data = ReactionData.from_nmr_title(path)
+    with Session(engine) as session:
+        reaction_query = select(Reaction).where(
+            Reaction.experiment == reaction_data.experiment,
+            Reaction.plate == reaction_data.plate,
+            Reaction.formulation_number == reaction_data.formulation_number,
+        )
+        reaction = session.exec(reaction_query).one()
+    spectrum = _get_nmr_spectrum(path.parent, reaction)
+    for peak_id, peak in enumerate(spectrum.aldehyde_peaks, 1):
+        peak.id = peak_id
+    return spectrum.get_aldehyde_peak_df()
+
+
+def get_nmr_imine_peaks_from_file(
+    path: Path,
+    engine: Engine,
+) -> pl.DataFrame:
+    reaction_data = ReactionData.from_nmr_title(path)
+    with Session(engine) as session:
+        reaction_query = select(Reaction).where(
+            Reaction.experiment == reaction_data.experiment,
+            Reaction.plate == reaction_data.plate,
+            Reaction.formulation_number == reaction_data.formulation_number,
+        )
+        reaction = session.exec(reaction_query).one()
+    spectrum = _get_nmr_spectrum(path.parent, reaction)
+    for peak_id, peak in enumerate(spectrum.imine_peaks, 1):
+        peak.id = peak_id
+    return spectrum.get_imine_peak_df()
+
+
+def get_ppm_error() -> pl.Expr:
+    return (
+        (pl.col("calculated_mz") - pl.col("spectrum_mz"))
+        / pl.col("calculated_mz")
+        * pl.lit(1e6)
+    ).abs()
+
+
+def get_separation() -> pl.Expr:
+    return (pl.col("separation_mz") - pl.col("spectrum_mz")) - (
+        1 / pl.col("charge")
     )
