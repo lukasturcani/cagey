@@ -107,7 +107,24 @@ class MassSpectrum(SQLModel, table=True):
                 ),
                 "intensity": list(map(attrgetter("intensity"), self.peaks)),
             }
+        ).with_columns(
+            ppm_error=get_ppm_error(),
+            separation=get_separation(),
         )
+
+
+def get_ppm_error() -> pl.Expr:
+    return (
+        (pl.col("calculated_mz") - pl.col("spectrum_mz"))
+        / pl.col("calculated_mz")
+        * pl.lit(1e6)
+    ).abs()
+
+
+def get_separation() -> pl.Expr:
+    return (pl.col("separation_mz") - pl.col("spectrum_mz")) - (
+        1 / pl.col("charge")
+    )
 
 
 class MassSpecPeak(SQLModel, table=True):
