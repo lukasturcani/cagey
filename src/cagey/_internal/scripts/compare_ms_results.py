@@ -19,22 +19,43 @@ def main() -> None:
     )
     old_results = _get_old_ms_results(args.csv_results)
     new_results = _get_new_ms_results(engine)
-    summary = old_results.join(
-        new_results,
-        on=["experiment", "plate", "formulation_number"],
-        how="left",
-    ).with_columns(
-        match=(
-            pl.col("topology").list.sort()
-            == pl.col("topology_right").list.sort()
+    summary = (
+        old_results.join(
+            new_results,
+            on=["experiment", "plate", "formulation_number"],
+            how="left",
         )
-        | (pl.col("topology").is_null() == pl.col("topology_right").is_null()),
-    )
-    print(
-        summary.collect().filter(
-            pl.col("match").eq(False) | pl.col("match").is_null()
+        .with_columns(
+            human_match=(
+                pl.col("topology").list.sort()
+                == pl.col("topology_right").list.sort()
+            )
+            | (
+                pl.col("topology").is_null()
+                == pl.col("topology_right").is_null()
+            ),
+            comp_match=(
+                pl.col("comp_topology").list.sort()
+                == pl.col("topology_right").list.sort()
+            )
+            | (
+                pl.col("comp_topology").is_null()
+                == pl.col("topology_right").is_null()
+            ),
         )
+        .with_columns(
+            pl.col("human_match").fill_null(False),
+            pl.col("comp_match").fill_null(False),
+        )
+        .filter(
+            pl.col("human_match").eq(False)
+            | pl.col("human_match").is_null()
+            | pl.col("comp_match").eq(False)
+            | pl.col("comp_match").is_null()
+        )
+        .sort(["experiment", "plate", "formulation_number"])
     )
+    print(summary.collect())
 
 
 def _parse_args() -> argparse.Namespace:
@@ -53,6 +74,7 @@ def _get_old_ms_results(path: Path) -> pl.LazyFrame:
                 "Formulation_Number": "formulation_number",
                 "Plate_Name": "plate",
                 "Topology": "topology",
+                "Comp_Topology": "comp_topology",
             }
         )
         .with_columns(
@@ -61,6 +83,7 @@ def _get_old_ms_results(path: Path) -> pl.LazyFrame:
             .str.replace("2B", "4")
             .cast(pl.Int64),
             pl.col("topology").str.strip_chars("[]").str.split(", "),
+            pl.col("comp_topology").str.strip_chars("[]").str.split(", "),
         )
     )
 
