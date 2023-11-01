@@ -4,13 +4,14 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from functools import partial
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Any
 
-from parallelbar import progress_imapu
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
 from sqlmodel.pool import StaticPool
+from tqdm import tqdm
 
 import cagey
 from cagey import Precursor, Reaction
@@ -20,10 +21,14 @@ Tri = aliased(Precursor)
 
 
 def main() -> None:
-    if __name__ == "__main__":
-        args = _parse_args()
-        to_csv = partial(_to_csv, args.mzmine)
-        progress_imapu(to_csv, args.machine_data)
+    args = _parse_args()
+    to_csv = partial(_to_csv, args.mzmine)
+    with Pool() as pool:
+        for _ in tqdm(
+            pool.imap_unordered(to_csv, args.machine_data),
+            total=len(args.machine_data),
+        ):
+            pass
 
 
 def old_main() -> None:
@@ -105,7 +110,6 @@ def _to_mzml(
         [
             "docker",
             "run",
-            "-it",
             "--rm",
             "--env",
             "WINEDEBUG=-all",

@@ -15,7 +15,7 @@ dependencies = [
   "pyopenms",
   "rdkit",
   "tqdm",
-  "parallelbar",
+  "types-tqdm",
 ]
 requires-python = ">=3.11"
 dynamic = ["version"]
@@ -78,6 +78,5 @@ disallow_any_generics = true
 module = [
   "nmrglue.*",
   "rdkit.*",
-  "parallelbar.*",
 ]
 ignore_missing_imports = true
