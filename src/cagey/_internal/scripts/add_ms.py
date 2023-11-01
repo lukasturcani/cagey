@@ -1,9 +1,13 @@
 import argparse
+import pkgutil
+import subprocess
+import tempfile
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 
-import polars as pl
+from parallelbar import progress_imapu
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
 from sqlmodel.pool import StaticPool
@@ -16,6 +20,13 @@ Tri = aliased(Precursor)
 
 
 def main() -> None:
+    if __name__ == "__main__":
+        args = _parse_args()
+        to_csv = partial(_to_csv, args.mzmine)
+        progress_imapu(to_csv, args.machine_data)
+
+
+def old_main() -> None:
     args = _parse_args()
     engine = create_engine(
         f"sqlite:///{args.database}",
@@ -49,7 +60,13 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=Path)
-    parser.add_argument("csv", type=Path, nargs="+")
+    parser.add_argument("machine_data", type=Path, nargs="+")
+    parser.add_argument(
+        "--mzmine",
+        type=Path,
+        default=Path("MZmine"),
+        help="path to MZmine version 3.4",
+    )
     return parser.parse_args()
 
 
@@ -79,6 +96,58 @@ def _get_reaction_query(reaction_key: ReactionKey) -> Any:
         Di.name == Reaction.di_name,
         Tri.name == Reaction.tri_name,
     )
+
+
+def _to_mzml(
+    machine_data: Path,
+) -> Path:
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            "-it",
+            "--rm",
+            "--env",
+            "WINEDEBUG=-all",
+            "--volume",
+            f"{machine_data.resolve().parent}:/data",
+            "chambm/pwiz-skyline-i-agree-to-the-vendor-licenses",
+            "wine",
+            "msconvert",
+            str(machine_data.name),
+            "-o",
+            ".",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return machine_data.parent / f"{machine_data.stem}.mzML"
+
+
+def _mzml_to_csv(mzml: Path, mzmine: Path) -> None:
+    template = pkgutil.get_data(
+        "cagey", "_internal/scripts/mzmine_input_template.xml"
+    )
+    assert template is not None
+    input_file_content = (
+        template.decode()
+        .replace("$INFILE$", str(mzml))
+        .replace("$OUTFILE$", str(mzml.with_suffix("")))
+    )
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".xml", delete=False
+    ) as f:
+        f.write(input_file_content)
+    subprocess.run(
+        [str(mzmine), "-batch", f.name],
+        check=True,
+        capture_output=True,
+    )
+
+
+def _to_csv(mzmine: Path, machine_data: Path) -> None:
+    mzml = _to_mzml(machine_data)
+    _mzml_to_csv(mzml, mzmine)
 
 
 if __name__ == "__main__":

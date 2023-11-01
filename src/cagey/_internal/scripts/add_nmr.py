@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
 from sqlmodel.pool import StaticPool
+from tqdm import tqdm
 
 import cagey
 from cagey import Reaction
@@ -28,8 +29,9 @@ def main() -> None:
             ReactionKey.from_reaction(reaction): reaction
             for reaction in session.exec(reaction_query).all()
         }
-        for path, reaction_key in zip(
-            args.title_file, reaction_keys, strict=True
+        for path, reaction_key in tqdm(
+            zip(args.title_file, reaction_keys, strict=True),
+            total=len(args.title_file),
         ):
             reaction = reactions[reaction_key]
             session.add(cagey.nmr.get_spectrum(path.parent, reaction))
