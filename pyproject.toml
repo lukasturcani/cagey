@@ -38,6 +38,7 @@ dev = [
 
 [project.scripts]
 cagey-rename-ms-csv = "cagey._internal.scripts.rename_ms_csv:main"
+cagey-rename-ms-folder = "cagey._internal.scripts.rename_ms_folder:main"
 cagey-fix-nmr-title = "cagey._internal.scripts.fix_nmr_title:main"
 cagey-add-tables = "cagey._internal.scripts.add_tables:main"
 cagey-add-reactions = "cagey._internal.scripts.add_reactions:main"
