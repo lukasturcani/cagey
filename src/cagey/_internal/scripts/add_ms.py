@@ -14,7 +14,7 @@ from sqlmodel.pool import StaticPool
 from tqdm import tqdm
 
 import cagey
-from cagey import Precursor, Reaction
+from cagey import MassSpectrum, Precursor, Reaction
 
 Di = aliased(Precursor)
 Tri = aliased(Precursor)
@@ -22,42 +22,42 @@ Tri = aliased(Precursor)
 
 def main() -> None:
     args = _parse_args()
-    to_csv = partial(_to_csv, args.mzmine)
-    with Pool() as pool:
-        for _ in tqdm(
-            pool.imap_unordered(to_csv, args.machine_data),
-            total=len(args.machine_data),
-        ):
-            pass
-
-
-def old_main() -> None:
-    args = _parse_args()
     engine = create_engine(
         f"sqlite:///{args.database}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    reaction_keys = tuple(map(ReactionKey.from_path, args.csv))
+    reaction_keys = tuple(map(ReactionKey.from_path, args.machine_data))
     reaction_query = select(Reaction, Di, Tri).where(
         or_(*map(_get_reaction_query, reaction_keys))
     )
 
-    spectrums = []
     with Session(engine) as session:
         reactions = {
-            ReactionKey.from_reaction(result[0]): result
-            for result in session.exec(reaction_query).all()
+            ReactionKey.from_reaction(reaction): ReactionData(
+                reaction=reaction, di=di, tri=tri
+            )
+            for reaction, di, tri in session.exec(reaction_query).all()
         }
-        for path, reaction_key in zip(args.csv, reaction_keys, strict=True):
-            reaction, di, tri = reactions[reaction_key]
-            spectrum = cagey.ms.get_spectrum(path, reaction, di, tri)
-            spectrums.append(spectrum)
-            session.add(spectrum)
+        get_mass_spectrum = partial(_get_mass_spectrum, args.mzmine)
+        with Pool() as pool:
+            spectrums = list(
+                tqdm(
+                    pool.imap_unordered(
+                        get_mass_spectrum,
+                        map(
+                            partial(_get_mass_spectrum_input, reactions),
+                            args.machine_data,
+                        ),
+                    ),
+                    desc="adding mass spectra",
+                    total=len(args.machine_data),
+                )
+            )
+        session.add_all(spectrums)
         session.commit()
-
-        for spectrum in spectrums:
+        for spectrum in tqdm(spectrums, desc="adding topology assignments"):
             session.add_all(cagey.ms.get_topologies(spectrum))
         session.commit()
 
@@ -91,6 +91,21 @@ class ReactionKey:
         return ReactionKey(
             reaction.experiment, reaction.plate, reaction.formulation_number
         )
+
+
+@dataclass(frozen=True, slots=True)
+class ReactionData:
+    reaction: Reaction
+    di: Precursor
+    tri: Precursor
+
+
+def _get_mass_spectrum_input(
+    reactions: dict[ReactionKey, ReactionData],
+    machine_data: Path,
+) -> tuple[ReactionData, Path]:
+    reaction_key = ReactionKey.from_path(machine_data)
+    return reactions[reaction_key], machine_data
 
 
 def _get_reaction_query(reaction_key: ReactionKey) -> Any:
@@ -128,7 +143,7 @@ def _to_mzml(
     return machine_data.parent / f"{machine_data.stem}.mzML"
 
 
-def _mzml_to_csv(mzml: Path, mzmine: Path) -> None:
+def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     template = pkgutil.get_data(
         "cagey", "_internal/scripts/mzmine_input_template.xml"
     )
@@ -147,11 +162,19 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> None:
         check=True,
         capture_output=True,
     )
+    return mzml.with_suffix(".csv")
 
 
-def _to_csv(mzmine: Path, machine_data: Path) -> None:
+def _get_mass_spectrum(
+    mzmine: Path,
+    input: tuple[ReactionData, Path],
+) -> MassSpectrum:
+    reaction_data, machine_data = input
     mzml = _to_mzml(machine_data)
-    _mzml_to_csv(mzml, mzmine)
+    csv = _mzml_to_csv(mzml, mzmine)
+    return cagey.ms.get_spectrum(
+        csv, reaction_data.reaction, reaction_data.di, reaction_data.tri
+    )
 
 
 if __name__ == "__main__":
