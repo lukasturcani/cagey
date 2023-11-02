@@ -42,19 +42,27 @@ def main() -> None:
         }
         get_mass_spectrum = partial(_get_mass_spectrum, args.mzmine)
         with Pool() as pool:
-            spectrums = list(
-                tqdm(
-                    pool.imap_unordered(
-                        get_mass_spectrum,
-                        map(
-                            partial(_get_mass_spectrum_input, reactions),
-                            args.machine_data,
-                        ),
+            failures = []
+            spectrums = []
+            for result in tqdm(
+                pool.imap_unordered(
+                    get_mass_spectrum,
+                    map(
+                        partial(_get_mass_spectrum_input, reactions),
+                        args.machine_data,
                     ),
-                    desc="adding mass spectra",
-                    total=len(args.machine_data),
-                )
-            )
+                ),
+                desc="adding mass spectra",
+                total=len(args.machine_data),
+            ):
+                match result:
+                    case MassSpectrum():
+                        spectrums.append(result)
+                    case Path():
+                        failures.append(result)
+        if failures:
+            failures_repr = ",\n\t".join(map(str, failures))
+            print(f"failed to process: [\n\t{failures_repr},\n]")
         session.add_all(spectrums)
         session.commit()
         for spectrum in tqdm(spectrums, desc="adding topology assignments"):
@@ -168,13 +176,16 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
 def _get_mass_spectrum(
     mzmine: Path,
     input: tuple[ReactionData, Path],
-) -> MassSpectrum:
-    reaction_data, machine_data = input
-    mzml = _to_mzml(machine_data)
-    csv = _mzml_to_csv(mzml, mzmine)
-    return cagey.ms.get_spectrum(
-        csv, reaction_data.reaction, reaction_data.di, reaction_data.tri
-    )
+) -> MassSpectrum | Path:
+    try:
+        reaction_data, machine_data = input
+        mzml = _to_mzml(machine_data)
+        csv = _mzml_to_csv(mzml, mzmine)
+        return cagey.ms.get_spectrum(
+            csv, reaction_data.reaction, reaction_data.di, reaction_data.tri
+        )
+    except Exception:
+        return machine_data
 
 
 if __name__ == "__main__":
