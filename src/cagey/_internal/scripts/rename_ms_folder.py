@@ -10,8 +10,11 @@ def main() -> None:
             experiment, plate_data = folder.stem.split("_")
             plate, formulation_number = plate_data.split("-")
         except ValueError:
-            print(f"bad folder: {folder}")
-            continue
+            *experiment_, plate, formulation_number = folder.stem.split("-")
+            if len(experiment_) != 3:
+                print(f"bad folder: {folder}")
+                continue
+            experiment = "-".join(experiment_)
 
         stem = "_".join(
             [
