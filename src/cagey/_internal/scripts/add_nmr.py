@@ -31,6 +31,7 @@ def main() -> None:
         }
         for path, reaction_key in tqdm(
             zip(args.title_file, reaction_keys, strict=True),
+            desc="adding nmr spectra",
             total=len(args.title_file),
         ):
             reaction = reactions[reaction_key]
