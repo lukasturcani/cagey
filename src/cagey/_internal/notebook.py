@@ -106,7 +106,7 @@ def get_ms_topology_assignments_from_database(
         pl.read_database(
             "SELECT experiment, plate, formulation_number, di_name, "
             "       tri_name, adduct, charge, calculated_mz, spectrum_mz, "
-            "       separation_mz, topology "
+            "       separation_mz, intensity, topology "
             "FROM massspectopologyassignment "
             "LEFT JOIN massspecpeak "
             "ON mass_spec_peak_id = massspecpeak.id "
