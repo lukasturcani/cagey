@@ -4,7 +4,7 @@ from itertools import product
 from pathlib import Path
 
 import polars as pl
-import rdkit.Chem.AllChem as rdkit
+import rdkit.Chem.AllChem as rdkit  # noqa: N813
 from pyopenms import EmpiricalFormula
 
 from cagey._internal.tables import (
@@ -53,11 +53,12 @@ PRECURSOR_COUNTS = (
 )
 
 
-def get_spectrum(
+def get_spectrum(  # noqa: PLR0913
     path: Path,
     reaction: Reaction,
     di: Precursor,
     tri: Precursor,
+    *,
     calculated_peak_tolerance: float = 0.1,
     separation_peak_tolerance: float = 0.1,
     max_ppm_error: float = 10,
@@ -75,11 +76,11 @@ def get_spectrum(
     ):
         if charge == 1 and str(adduct.toString()) in CHARGE1_BANNED_ADDUCTS:
             continue
-        if charge == 2 and str(adduct.toString()) in CHARGE2_BANNED_ADDUCTS:
+        if charge == 2 and str(adduct.toString()) in CHARGE2_BANNED_ADDUCTS:  # noqa: PLR2004
             continue
-        if charge == 3 and str(adduct.toString()) in CHARGE3_BANNED_ADDUCTS:
+        if charge == 3 and str(adduct.toString()) in CHARGE3_BANNED_ADDUCTS:  # noqa: PLR2004
             continue
-        if charge == 4 and str(adduct.toString()) in CHARGE4_BANNED_ADDUCTS:
+        if charge == 4 and str(adduct.toString()) in CHARGE4_BANNED_ADDUCTS:  # noqa: PLR2004
             continue
 
         di_data = PrecursorData(di_formula, di_count, 2)
@@ -199,14 +200,15 @@ def get_topologies(
     )
 
     has_four_plus_six = any(
-        peak.tri_count == 4 and peak.di_count == 6 for peak in valid_peaks
+        peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
+        for peak in valid_peaks
     )
     has_singly_charged_2_plus_3 = any(
-        peak.charge == 1 and peak.tri_count == 2 and peak.di_count == 3
+        peak.charge == 1 and peak.tri_count == 2 and peak.di_count == 3  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_doubly_charged_2_plus_3 = any(
-        peak.charge == 2 and peak.tri_count == 2 and peak.di_count == 3
+        peak.charge == 2 and peak.tri_count == 2 and peak.di_count == 3  # noqa: PLR2004
         for peak in valid_peaks
     )
     avoid_2_plus_3 = (
@@ -215,14 +217,15 @@ def get_topologies(
         and not has_doubly_charged_2_plus_3
     )
     has_eight_plus_twelve = any(
-        peak.tri_count == 8 and peak.di_count == 12 for peak in valid_peaks
+        peak.tri_count == 8 and peak.di_count == 12  # noqa: PLR2004
+        for peak in valid_peaks
     )
     has_singly_charged_4_plus_6 = any(
-        peak.charge == 1 and peak.tri_count == 4 and peak.di_count == 6
+        peak.charge == 1 and peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_doubly_charged_4_plus_6 = any(
-        peak.charge == 2 and peak.tri_count == 4 and peak.di_count == 6
+        peak.charge == 2 and peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
         for peak in valid_peaks
     )
     avoid_4_plus_6 = (

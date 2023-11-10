@@ -1,3 +1,5 @@
+# ruff: noqa: T201
+
 import argparse
 from pathlib import Path
 from typing import cast
@@ -11,7 +13,7 @@ def main() -> None:
             plate, formulation_number = plate_data.split("-")
         except ValueError:
             *experiment_, plate, formulation_number = folder.stem.split("-")
-            if len(experiment_) != 3:
+            if len(experiment_) != 3:  # noqa: PLR2004
                 print(f"bad folder: {folder}")
                 continue
             experiment = "-".join(experiment_)

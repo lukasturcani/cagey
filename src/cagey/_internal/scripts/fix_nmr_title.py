@@ -1,3 +1,5 @@
+# ruff: noqa: T201
+
 import argparse
 from pathlib import Path
 from typing import cast
@@ -12,9 +14,9 @@ def main() -> None:
             plate, formulation_number = plate_data.split("-")
         except ValueError:
             *experiment_, plate, formulation_number = title.strip().split("-")
-            if len(experiment_) == 2 and plate == "P2":
+            if len(experiment_) == 2 and plate == "P2":  # noqa: PLR2004
                 experiment = "AB-02-009"
-            elif len(experiment_) != 3:
+            elif len(experiment_) != 3:  # noqa: PLR2004
                 print(f"bad file: {title_file}")
                 continue
             else:

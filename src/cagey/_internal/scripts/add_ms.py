@@ -62,7 +62,7 @@ def main() -> None:
                         failures.append(result)
         if failures:
             failures_repr = ",\n\t".join(map(str, failures))
-            print(f"failed to process: [\n\t{failures_repr},\n]")
+            print(f"failed to process: [\n\t{failures_repr},\n]")  # noqa: T201
         session.add_all(spectrums)
         session.commit()
         for spectrum in tqdm(spectrums, desc="adding topology assignments"):
@@ -130,7 +130,7 @@ def _to_mzml(
     machine_data: Path,
 ) -> Path:
     subprocess.run(
-        [
+        [  # noqa: S603, S607
             "docker",
             "run",
             "--rm",
@@ -155,7 +155,9 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     template = pkgutil.get_data(
         "cagey", "_internal/scripts/mzmine_input_template.xml"
     )
-    assert template is not None
+    if template is None:
+        msg = "failed to load mzmine input template"
+        raise RuntimeError(msg)
     input_file_content = (
         template.decode()
         .replace("$INFILE$", str(mzml))
@@ -166,7 +168,7 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     ) as f:
         f.write(input_file_content)
     subprocess.run(
-        [str(mzmine), "-batch", f.name],
+        [str(mzmine), "-batch", f.name],  # noqa: S603
         check=True,
         capture_output=True,
     )
@@ -175,16 +177,18 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
 
 def _get_mass_spectrum(
     mzmine: Path,
-    input: tuple[ReactionData, Path],
+    spectrum_data: tuple[ReactionData, Path],
 ) -> MassSpectrum | Path:
     try:
-        reaction_data, machine_data = input
+        reaction_data, machine_data = spectrum_data
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
         return cagey.ms.get_spectrum(
             csv, reaction_data.reaction, reaction_data.di, reaction_data.tri
         )
-    except Exception:
+    # catch any exception here because the function get called in a
+    # process pool
+    except Exception:  # noqa: BLE001
         return machine_data
 
 

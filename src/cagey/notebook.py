@@ -1,3 +1,5 @@
+"""Tools for working with Jupyter notebooks."""
+
 from cagey._internal.notebook import (
     get_ms_peaks_from_database,
     get_ms_spectrum_from_file,

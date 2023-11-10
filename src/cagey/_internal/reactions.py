@@ -6,7 +6,7 @@ from sqlmodel import Session
 from cagey._internal.tables import Precursor, Reaction
 
 
-def add_precursors(session: Session, commit: bool = True) -> None:
+def add_precursors(session: Session, *, commit: bool = True) -> None:
     precursors = {
         "Di1": "O=Cc1cccc(C=O)c1",
         "Di2": "CC(C)(C)c1cc(C=O)c(O)c(C=O)c1",
@@ -77,6 +77,7 @@ def add_precursors(session: Session, commit: bool = True) -> None:
 
 def add_ab_02_005_data(
     session: Session,
+    *,
     commit: bool = True,
 ) -> None:
     _add_data_helper(
@@ -111,7 +112,7 @@ def add_ab_02_005_data(
         session.commit()
 
 
-def add_ab_02_007_data(session: Session, commit: bool = True) -> None:
+def add_ab_02_007_data(session: Session, *, commit: bool = True) -> None:
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
@@ -152,7 +153,7 @@ def add_ab_02_007_data(session: Session, commit: bool = True) -> None:
         session.commit()
 
 
-def add_ab_02_009_data(session: Session, commit: bool = True) -> None:
+def add_ab_02_009_data(session: Session, *, commit: bool = True) -> None:
     _add_data_helper(
         dis=("Di25", "Di26", "Di27", "Di28", "Di29", "Di30", "Di31", "Di32"),
         tris=("TriL", "TriM", "TriN", "TriO", "TriP", "TriQ"),
@@ -294,7 +295,7 @@ def add_ab_02_009_data(session: Session, commit: bool = True) -> None:
         session.commit()
 
 
-def _add_data_helper(
+def _add_data_helper(  # noqa: PLR0913
     dis: Iterable[str],
     tris: Iterable[str],
     experiment: str,

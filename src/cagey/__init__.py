@@ -1,3 +1,5 @@
+"""Streamlined automated data analysis."""
+
 from cagey import ms, nmr, notebook, reactions
 from cagey._internal.tables import (
     MassSpecPeak,

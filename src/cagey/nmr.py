@@ -1,3 +1,5 @@
+"""NMR analysis."""
+
 from cagey._internal.nmr import get_spectrum
 
 __all__ = [

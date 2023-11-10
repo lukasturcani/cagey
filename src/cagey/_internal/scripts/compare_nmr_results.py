@@ -1,3 +1,4 @@
+# ruff: noqa: T201
 import argparse
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -46,7 +47,7 @@ def main() -> None:
             strategy="nearest",
         )
         .with_columns(ppm_diff=(pl.col("ppm") - pl.col("ppm_right")).abs())
-        .filter(pl.col("ppm_diff").is_null() | (pl.col("ppm_diff") > 1e-8))
+        .filter(pl.col("ppm_diff").is_null() | pl.col("ppm_diff").gt(1e-8))
     )
     print("aldehyde peaks not found in new")
     print(aldehyde_peaks_not_found_in_new.collect())
@@ -61,7 +62,7 @@ def main() -> None:
             strategy="nearest",
         )
         .with_columns(ppm_diff=(pl.col("ppm") - pl.col("ppm_right")).abs())
-        .filter(pl.col("ppm_diff").is_null() | (pl.col("ppm_diff") > 1e-8))
+        .filter(pl.col("ppm_diff").is_null() | pl.col("ppm_diff").gt(1e-8))
     )
     print("imine peaks not found in new")
     print(imine_peaks_not_found_in_new.collect())
@@ -204,7 +205,7 @@ def _get_new_nmr_results(engine: Engine) -> Results:
 
     has_peaks = has_aldehyde_peaks.join(
         has_imine_peaks, on="nmr_spectrum_id", how="outer"
-    ).fill_null(False)
+    ).fill_null(value=False)
 
     nmr_spectra = (
         pl.read_database(

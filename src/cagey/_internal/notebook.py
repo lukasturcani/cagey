@@ -30,9 +30,10 @@ class ReactionData:
         return ReactionData(experiment, int(plate), int(formulation_number))
 
 
-def get_ms_spectrum_from_file(
+def get_ms_spectrum_from_file(  # noqa: PLR0913
     path: Path,
     engine: Engine,
+    *,
     calculated_peak_tolerance: float = 0.1,
     separation_peak_tolerance: float = 0.1,
     max_ppm_error: float = 10,
@@ -41,8 +42,8 @@ def get_ms_spectrum_from_file(
 ) -> MassSpectrum:
     reaction_data = ReactionData.from_ms_path(path)
     with Session(engine) as session:
-        Di = aliased(Precursor)
-        Tri = aliased(Precursor)
+        Di = aliased(Precursor)  # noqa: N806
+        Tri = aliased(Precursor)  # noqa: N806
         reaction_query = select(Reaction, Di, Tri).where(
             Reaction.experiment == reaction_data.experiment,
             Reaction.plate == reaction_data.plate,
@@ -67,9 +68,10 @@ def get_ms_spectrum_from_file(
     return spectrum
 
 
-def get_ms_topology_assignments_from_file(
+def get_ms_topology_assignments_from_file(  # noqa: PLR0913
     path: Path,
     engine: Engine,
+    *,
     calculated_peak_tolerance: float = 0.1,
     separation_peak_tolerance: float = 0.1,
     max_ppm_error: float = 10,

@@ -1,5 +1,6 @@
+# ruff: noqa: T201
+
 import argparse
-from collections.abc import Iterable
 from pathlib import Path
 
 import polars as pl
@@ -44,13 +45,13 @@ def main() -> None:
             ),
         )
         .with_columns(
-            pl.col("human_match").fill_null(False),
-            pl.col("comp_match").fill_null(False),
+            pl.col("human_match").fill_null(value=False),
+            pl.col("comp_match").fill_null(value=False),
         )
         .filter(
-            pl.col("human_match").eq(False)
+            pl.col("human_match").eq(other=False)
             | pl.col("human_match").is_null()
-            | pl.col("comp_match").eq(False)
+            | pl.col("comp_match").eq(other=False)
             | pl.col("comp_match").is_null()
         )
         .sort(["experiment", "plate", "formulation_number"])

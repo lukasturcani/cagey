@@ -1,3 +1,5 @@
+# ruff: noqa: T201
+
 import argparse
 from pathlib import Path
 from typing import cast
@@ -12,7 +14,7 @@ def main() -> None:
         except ValueError:
             data, _ = csv.stem.split("_")
             *experiment_, plate, formulation_number = data.split("-")
-            if len(experiment_) != 3:
+            if len(experiment_) != 3:  # noqa: PLR2004
                 print(f"bad file: {csv}")
                 continue
             experiment = "-".join(experiment_)
