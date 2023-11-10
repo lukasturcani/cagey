@@ -1,3 +1,6 @@
+# ruff: noqa: T201
+
+import textwrap
 import argparse
 import pkgutil
 import subprocess
@@ -6,7 +9,7 @@ from dataclasses import dataclass
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any
+from typing import Any, assert_never
 
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
@@ -58,11 +61,16 @@ def main() -> None:
                 match result:
                     case MassSpectrum():
                         spectrums.append(result)
-                    case Path():
+                    case MassSpectrumError():
                         failures.append(result)
+                    case _ as unreachable:
+                        assert_never(unreachable)
         if failures:
-            failures_repr = ",\n\t".join(map(str, failures))
-            print(f"failed to process: [\n\t{failures_repr},\n]")  # noqa: T201
+            failures_repr = textwrap.indent(
+                text="\n".join(failure.to_str() for failure in failures),
+                prefix="\t",
+            )
+            print(f"failed to process: [\n{failures_repr},\n]")
         session.add_all(spectrums)
         session.commit()
         for spectrum in tqdm(spectrums, desc="adding topology assignments"):
@@ -175,10 +183,23 @@ def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     return mzml.with_suffix(".csv")
 
 
+@dataclass(frozen=True, slots=True)
+class MassSpectrumError:
+    path: Path
+    exception: Exception
+
+    def to_str(self) -> str:
+        error_str = textwrap.indent(
+            text=str(self.exception),
+            prefix="\t",
+        )
+        return f"{self.path}:\n{error_str}"
+
+
 def _get_mass_spectrum(
     mzmine: Path,
     spectrum_data: tuple[ReactionData, Path],
-) -> MassSpectrum | Path:
+) -> MassSpectrum | MassSpectrumError:
     try:
         reaction_data, machine_data = spectrum_data
         mzml = _to_mzml(machine_data)
@@ -188,8 +209,8 @@ def _get_mass_spectrum(
         )
     # catch any exception here because the function get called in a
     # process pool
-    except Exception:  # noqa: BLE001
-        return machine_data
+    except Exception as ex:  # noqa: BLE001
+        return MassSpectrumError(machine_data, ex)
 
 
 if __name__ == "__main__":
