@@ -1,32 +1,20 @@
+from operator import attrgetter
 from pathlib import Path
 
 import cagey
-import polars as pl
-from pytest import fixture
-from sqlalchemy.engine import Engine
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
+from cagey import Reaction
 
 
-def test_nmr_extraction(engine: Engine, datadir: Path) -> None:
-    with Session(engine) as session:
-        cagey.nmr.add_data(datadir / "NMR_data", session)
-        aldehyde_peaks = pl.read_database(
-            "SELECT * FROM aldehydepeak", engine.connect()
-        )
-        assert len(aldehyde_peaks) == 3
-        imine_peaks = pl.read_database(
-            "SELECT * FROM iminepeak", engine.connect()
-        )
-        assert len(imine_peaks) == 35
-
-
-@fixture
-def engine() -> Engine:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+def test_nmr_extraction(datadir: Path) -> None:
+    spectrum = cagey.nmr.get_spectrum(
+        datadir / "NMR_data" / "AB-02-005" / "P1" / "170" / "pdata" / "1",
+        Reaction(id=1, experiment="AB-02-005", plate=1, formulation_number=23),
     )
-    SQLModel.metadata.create_all(engine)
-    return engine
+    aldehyde_peaks = sorted(
+        map(attrgetter("ppm", "amplitude"), spectrum.aldehyde_peaks)
+    )
+    assert aldehyde_peaks == []
+    imine_peaks = sorted(
+        map(attrgetter("ppm", "amplitude"), spectrum.imine_peaks)
+    )
+    assert imine_peaks == []

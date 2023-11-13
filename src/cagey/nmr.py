@@ -1,5 +1,7 @@
-from cagey._internal.nmr import add_data
+"""NMR analysis."""
+
+from cagey._internal.nmr import get_spectrum
 
 __all__ = [
-    "add_data",
+    "get_spectrum",
 ]

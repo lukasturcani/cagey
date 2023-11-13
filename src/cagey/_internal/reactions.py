@@ -1,28 +1,12 @@
 from collections.abc import Iterable
 from itertools import product
 
-from sqlmodel import Field, Session, SQLModel, UniqueConstraint
+from sqlmodel import Session
+
+from cagey._internal.tables import Precursor, Reaction
 
 
-class Precursor(SQLModel, table=True):
-    name: str = Field(primary_key=True)
-    smiles: str
-
-
-class Reaction(SQLModel, table=True):
-    __table_args__ = (
-        UniqueConstraint("experiment", "plate", "formulation_number"),
-    )
-
-    id: int | None = Field(default=None, primary_key=True)
-    experiment: str
-    plate: str
-    formulation_number: int
-    di: str = Field(foreign_key="precursor.name")
-    tri: str = Field(foreign_key="precursor.name")
-
-
-def add_precursors(session: Session, commit: bool = True) -> None:
+def add_precursors(session: Session, *, commit: bool = True) -> None:
     precursors = {
         "Di1": "O=Cc1cccc(C=O)c1",
         "Di2": "CC(C)(C)c1cc(C=O)c(O)c(C=O)c1",
@@ -93,209 +77,217 @@ def add_precursors(session: Session, commit: bool = True) -> None:
 
 def add_ab_02_005_data(
     session: Session,
+    *,
     commit: bool = True,
 ) -> None:
     _add_data_helper(
         dis=("Di1", "Di2", "Di3", "Di4", "Di5", "Di6", "Di7", "Di8"),
         tris=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
         experiment="AB-02-005",
-        plate="P1",
+        plate=1,
         session=session,
     )
     _add_data_helper(
         dis=("Di17", "Di18", "Di19", "Di20", "Di21", "Di22", "Di23", "Di24"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriL"),
         experiment="AB-02-005",
-        plate="P2",
+        plate=2,
         session=session,
     )
     _add_data_helper(
         dis=("Di9", "Di10", "Di11", "Di12", "Di13", "Di14", "Di15", "Di16"),
         tris=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
         experiment="AB-02-005",
-        plate="P3",
+        plate=3,
         session=session,
     )
     _add_data_helper(
         dis=("Di17", "Di18", "Di19", "Di20", "Di21", "Di22", "Di23", "Di24"),
         tris=("TriM", "TriN", "TriO", "TriP", "TriQ", "TriR"),
         experiment="AB-02-005",
-        plate="P4",
+        plate=4,
         session=session,
     )
     if commit:
         session.commit()
 
 
-def add_ab_02_007_data(session: Session, commit: bool = True) -> None:
+def add_ab_02_007_data(session: Session, *, commit: bool = True) -> None:
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
         experiment="AB-02-007",
-        plate="P1",
+        plate=1,
         session=session,
     )
     _add_data_helper(
         dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
         experiment="AB-02-007",
-        plate="P2",
+        plate=2,
         session=session,
     )
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriS", "TriT", "TriU"),
         experiment="AB-02-007",
-        plate="P3",
+        plate=3,
         session=session,
     )
     _add_data_helper(
         dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
         tris=("TriS", "TriT", "TriU"),
         experiment="AB-02-007",
-        plate="P3",
+        plate=3,
         session=session,
         start_tri_index=3,
     )
+    _add_data_helper(
+        dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
+        tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
+        experiment="AB-02-007",
+        plate=4,
+        session=session,
+    )
     if commit:
         session.commit()
 
 
-def add_ab_02_009_data(session: Session, commit: bool = True) -> None:
+def add_ab_02_009_data(session: Session, *, commit: bool = True) -> None:
     _add_data_helper(
         dis=("Di25", "Di26", "Di27", "Di28", "Di29", "Di30", "Di31", "Di32"),
         tris=("TriL", "TriM", "TriN", "TriO", "TriP", "TriQ"),
         experiment="AB-02-009",
-        plate="P1",
+        plate=1,
         session=session,
     )
     session.add_all(
         [
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=1,
-                di="Di33",
-                tri="TriL",
+                di_name="Di33",
+                tri_name="TriL",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=2,
-                di="Di34",
-                tri="TriL",
+                di_name="Di34",
+                tri_name="TriL",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=3,
-                di="Di19",
-                tri="TriS",
+                di_name="Di19",
+                tri_name="TriS",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=9,
-                di="Di33",
-                tri="TriM",
+                di_name="Di33",
+                tri_name="TriM",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=10,
-                di="Di34",
-                tri="TriM",
+                di_name="Di34",
+                tri_name="TriM",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=11,
-                di="Di19",
-                tri="TriT",
+                di_name="Di19",
+                tri_name="TriT",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=17,
-                di="Di33",
-                tri="TriN",
+                di_name="Di33",
+                tri_name="TriN",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=18,
-                di="Di34",
-                tri="TriN",
+                di_name="Di34",
+                tri_name="TriN",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=19,
-                di="Di19",
-                tri="TriU",
+                di_name="Di19",
+                tri_name="TriU",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=25,
-                di="Di33",
-                tri="TriO",
+                di_name="Di33",
+                tri_name="TriO",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=26,
-                di="Di34",
-                tri="TriO",
+                di_name="Di34",
+                tri_name="TriO",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=27,
-                di="Di21",
-                tri="TriS",
+                di_name="Di21",
+                tri_name="TriS",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=33,
-                di="Di33",
-                tri="TriP",
+                di_name="Di33",
+                tri_name="TriP",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=34,
-                di="Di34",
-                tri="TriP",
+                di_name="Di34",
+                tri_name="TriP",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=35,
-                di="Di21",
-                tri="TriT",
+                di_name="Di21",
+                tri_name="TriT",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=41,
-                di="Di33",
-                tri="TriQ",
+                di_name="Di33",
+                tri_name="TriQ",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=42,
-                di="Di34",
-                tri="TriQ",
+                di_name="Di34",
+                tri_name="TriQ",
             ),
             Reaction(
                 experiment="AB-02-009",
-                plate="P2",
+                plate=2,
                 formulation_number=43,
-                di="Di21",
-                tri="TriU",
+                di_name="Di21",
+                tri_name="TriU",
             ),
         ]
     )
@@ -303,11 +295,11 @@ def add_ab_02_009_data(session: Session, commit: bool = True) -> None:
         session.commit()
 
 
-def _add_data_helper(
+def _add_data_helper(  # noqa: PLR0913
     dis: Iterable[str],
     tris: Iterable[str],
     experiment: str,
-    plate: str,
+    plate: int,
     session: Session,
     start_tri_index: int = 0,
 ) -> None:
@@ -316,8 +308,8 @@ def _add_data_helper(
             experiment=experiment,
             plate=plate,
             formulation_number=(di_index + 1) + (tri_index * 8),
-            di=di,
-            tri=tri,
+            di_name=di,
+            tri_name=tri,
         )
         for (di_index, di), (tri_index, tri) in product(
             enumerate(dis), enumerate(tris, start_tri_index)
