@@ -64,6 +64,7 @@ def get_spectrum(  # noqa: PLR0913
     max_ppm_error: float = 10,
     max_separation: float = 0.02,
     min_peak_height: float = 1e4,
+    max_between_peak_height: float = 0.8,
 ) -> MassSpectrum:
     peaks = (
         pl.scan_csv(path).filter(pl.col("height") > min_peak_height).collect()
@@ -103,12 +104,24 @@ def get_spectrum(  # noqa: PLR0913
             )
         )
         if not separation_peaks.is_empty():
-            separation_mz = separation_peaks.row(0, named=True)["mz"]
+            separation_peak = separation_peaks.row(0, named=True)
+            separation_mz = separation_peak["mz"]
             ppm_error = abs((cage_mz - cage_peak["mz"]) / cage_mz * 1e6)
             separation = separation_mz - cage_peak["mz"]
+            between_peaks = peaks.filter(
+                pl.col("mz").is_between(
+                    cage_peak["mz"],
+                    separation_mz,
+                    closed="none",
+                )
+                & pl.col("height").gt(
+                    separation_peak["height"] * max_between_peak_height
+                )
+            )
             if (
                 ppm_error <= max_ppm_error
                 and abs(separation - 1 / charge) <= max_separation
+                and between_peaks.is_empty()
             ):
                 mass_spectrum.peaks.append(
                     MassSpecPeak(
