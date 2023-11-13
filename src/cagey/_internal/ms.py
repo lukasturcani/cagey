@@ -30,19 +30,56 @@ ADDUCTS = (
 )
 H_MONO_WEIGHT = EmpiricalFormula("H").getMonoWeight()
 CHARGES = (1, 2, 3, 4)
-CHARGE1_BANNED_ADDUCTS = {"H2", "K2", "Na2", "H3", "K3", "Na3", "H4"}
-CHARGE2_BANNED_ADDUCTS = {"H1", "H3", "K1", "K3", "Na1", "Na3", "H4"}
-CHARGE3_BANNED_ADDUCTS = {"H1", "H2", "Na1", "Na2", "K1", "K2", "H4"}
+CHARGE1_BANNED_ADDUCTS = {
+    str(EmpiricalFormula(x).toString())
+    for x in [
+        "H2",
+        "K2",
+        "Na2",
+        "H3",
+        "K3",
+        "Na3",
+        "H4",
+    ]
+}
+CHARGE2_BANNED_ADDUCTS = {
+    str(EmpiricalFormula(x).toString())
+    for x in [
+        "H1",
+        "H3",
+        "K1",
+        "K3",
+        "Na1",
+        "Na3",
+        "H4",
+        "N1H4",
+    ]
+}
+CHARGE3_BANNED_ADDUCTS = {
+    str(EmpiricalFormula(x).toString())
+    for x in [
+        "H1",
+        "H2",
+        "Na1",
+        "Na2",
+        "K1",
+        "K2",
+        "H4",
+    ]
+}
 CHARGE4_BANNED_ADDUCTS = {
-    "H1",
-    "H2",
-    "H3",
-    "Na1",
-    "Na2",
-    "Na3",
-    "K1",
-    "K2",
-    "K3",
+    str(EmpiricalFormula(x).toString())
+    for x in [
+        "H1",
+        "H2",
+        "H3",
+        "Na1",
+        "Na2",
+        "Na3",
+        "K1",
+        "K2",
+        "K3",
+    ]
 }
 PRECURSOR_COUNTS = (
     (2, 3),
