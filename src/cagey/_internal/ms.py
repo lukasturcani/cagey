@@ -64,7 +64,7 @@ def get_spectrum(  # noqa: PLR0913
     max_ppm_error: float = 10,
     max_separation: float = 0.02,
     min_peak_height: float = 1e4,
-    max_between_peak_height: float = 0.8,
+    max_between_peak_height: float = 0.7,
 ) -> MassSpectrum:
     peaks = (
         pl.scan_csv(path).filter(pl.col("height") > min_peak_height).collect()

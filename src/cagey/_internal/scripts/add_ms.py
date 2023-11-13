@@ -1,10 +1,10 @@
 # ruff: noqa: T201
 
-import textwrap
 import argparse
 import pkgutil
 import subprocess
 import tempfile
+import textwrap
 from dataclasses import dataclass
 from functools import partial
 from multiprocessing import Pool

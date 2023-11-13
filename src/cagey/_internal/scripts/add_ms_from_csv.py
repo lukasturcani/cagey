@@ -65,10 +65,10 @@ def main() -> None:
         for csv in tqdm(args.csv, desc="adding mass spectra"):
             reaction_data = reactions[ReactionKey.from_path(csv)]
             spectrum = cagey.ms.get_spectrum(
-                csv,
-                reaction_data.reaction,
-                reaction_data.di,
-                reaction_data.tri,
+                path=csv,
+                reaction=reaction_data.reaction,
+                di=reaction_data.di,
+                tri=reaction_data.tri,
             )
             spectrums.append(spectrum)
         session.add_all(spectrums)
