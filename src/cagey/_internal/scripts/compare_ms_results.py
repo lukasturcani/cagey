@@ -63,6 +63,8 @@ def main() -> None:
                 "combination",
                 "adduct",
                 "charge",
+                "calculated_mz",
+                "spectrum_mz",
                 "comp_topology",
                 "topology",
                 "topology_right",
@@ -109,7 +111,7 @@ def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
     return (
         pl.read_database(
             "SELECT experiment, plate, formulation_number, "
-            "       adduct, charge, topology "
+            "       adduct, charge, calculated_mz, spectrum_mz, topology "
             "FROM massspectopologyassignment "
             "LEFT JOIN massspecpeak "
             "ON mass_spec_peak_id = massspecpeak.id "
@@ -119,10 +121,14 @@ def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
             "ON reaction_id = reaction.id",
             engine.connect(),
         )
-        .group_by(
-            ["experiment", "plate", "formulation_number", "adduct", "charge"]
+        .group_by(["experiment", "plate", "formulation_number"])
+        .agg(
+            pl.col("topology").unique(),
+            pl.col("adduct"),
+            pl.col("charge"),
+            pl.col("calculated_mz"),
+            pl.col("spectrum_mz"),
         )
-        .agg(pl.col("topology").unique())
     ).lazy()
 
 
