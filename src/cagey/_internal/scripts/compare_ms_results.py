@@ -55,6 +55,21 @@ def main() -> None:
             | pl.col("comp_match").is_null()
         )
         .sort(["experiment", "plate", "formulation_number"])
+        .select(
+            [
+                "experiment",
+                "plate",
+                "formulation_number",
+                "combination",
+                "adduct",
+                "charge",
+                "comp_topology",
+                "topology",
+                "topology_right",
+                "human_match",
+                "comp_match",
+            ]
+        )
     )
     print(summary.collect())
 
@@ -76,6 +91,7 @@ def _get_old_ms_results(path: Path) -> pl.LazyFrame:
                 "Plate_Name": "plate",
                 "Topology": "topology",
                 "Comp_Topology": "comp_topology",
+                "Combination": "combination",
             }
         )
         .with_columns(
@@ -92,7 +108,8 @@ def _get_old_ms_results(path: Path) -> pl.LazyFrame:
 def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
     return (
         pl.read_database(
-            "SELECT experiment, plate, formulation_number, topology "
+            "SELECT experiment, plate, formulation_number, "
+            "       adduct, charge, topology "
             "FROM massspectopologyassignment "
             "LEFT JOIN massspecpeak "
             "ON mass_spec_peak_id = massspecpeak.id "
@@ -102,7 +119,9 @@ def _get_new_ms_results(engine: Engine) -> pl.LazyFrame:
             "ON reaction_id = reaction.id",
             engine.connect(),
         )
-        .group_by(["experiment", "plate", "formulation_number"])
+        .group_by(
+            ["experiment", "plate", "formulation_number", "adduct", "charge"]
+        )
         .agg(pl.col("topology").unique())
     ).lazy()
 
