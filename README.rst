@@ -1,7 +1,7 @@
 Cagey
 =====
 
-``cagey`` analyses experimental data from generated during high-throughput
+``cagey`` analyses experimental data generated during high-throughput
 porous organic cage synthesis to determine if cages were successfully formed.
 
 Installation
