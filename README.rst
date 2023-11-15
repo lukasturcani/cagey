@@ -11,7 +11,7 @@ Installation
 
   pip install cagey
 
-This will give you a series of command line tools which we used in the
+This will give you a series of command line tools which we will use in the
 next section.
 
 Usage
