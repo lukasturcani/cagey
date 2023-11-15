@@ -37,7 +37,7 @@ Adding NMR Data
 Adding Mass Spectrometry Data
 .............................
 
-.. admonition::
+.. warning::
 
   This step requires you have Docker and MZMine version 3.4.27 installed.
 
@@ -49,4 +49,4 @@ Viewing the Database
 ....................
 
 You can see the data held in the database by opening the notebook in
-`./notebooks/view_tables.ipynb`_.
+:ref:`./notebooks/view_tables.ipynb`.
