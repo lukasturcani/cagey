@@ -1,8 +1,8 @@
 import argparse
 import json
+from enum import Enum, auto
 from pathlib import Path
 from typing import TypeAlias
-from enum import Enum, auto
 
 Json: TypeAlias = int | float | str | None | list["Json"] | dict[str, "Json"]
 
