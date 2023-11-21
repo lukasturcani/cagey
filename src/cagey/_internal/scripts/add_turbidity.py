@@ -1,10 +1,10 @@
 import argparse
 import json
-from dataclasses import dataclass
-import polars as pl
 from enum import Enum, auto
 from pathlib import Path
 from typing import TypeAlias
+
+import polars as pl
 
 Json: TypeAlias = int | float | str | None | list["Json"] | dict[str, "Json"]
 
@@ -16,6 +16,12 @@ class TurbidState(Enum):
     UNSTABLE = auto()
 
 
+class Category(Enum):
+    DISSOLVED = auto()
+    UNDISSOLVED = auto()
+    NOT_DETERMINED = auto()
+
+
 def main() -> None:
     pl.Config.set_tbl_rows(-1)
     pl.Config.set_tbl_cols(-1)
@@ -25,16 +31,13 @@ def main() -> None:
         dissolved_reference = data["turbidity_dissolved_reference"]
         turbidity = turbidity_from_json(data["turbidity_data"])
         turbidity = average_turbidity(turbidity)
-        turbidity = (
+        turbidity_result = (
             turbidity.with_columns(
                 stable=pl.col("turbidity")
                 .is_between(pl.col("lower_bound"), pl.col("upper_bound"))
                 .or_(pl.col("turbidities").list.len() == 1),
             )
             .with_columns(
-                dissolved=pl.col("stable").and_(
-                    pl.col("mean") < dissolved_reference
-                ),
                 group=(
                     (pl.col("stable") != pl.col("stable").shift(1))
                     .fill_null(value=True)
@@ -42,11 +45,25 @@ def main() -> None:
                 ),
             )
             .group_by("group")
-            .agg(pl.col("time").dt.combine())
-        )
+            .agg(
+                time_delta=pl.max("time") - pl.min("time"),
+                mean_turbidity=pl.mean("turbidity"),
+            )
+            .filter(
+                pl.col("time_delta") >= pl.duration(minutes=1),
+            )
+        ).collect()
+        if turbidity_result.is_empty():
+            category = Category.NOT_DETERMINED
+        elif (
+            turbidity_result.row(0, named=True)["mean_turbidity"]
+            < dissolved_reference
+        ):
+            category = Category.DISSOLVED
+        else:
+            category = Category.UNDISSOLVED
 
-        print(f"{dissolved_reference=}")
-        print(turbidity.collect())
+        print(category)
 
 
 def _parse_args() -> argparse.Namespace:
