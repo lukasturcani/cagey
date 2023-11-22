@@ -34,10 +34,6 @@ def main() -> None:
                 pl.col("human_state") == pl.col("state_right")
             ).fill_null(value=False),
         )
-        .filter(
-            pl.col("match").eq(other=False)
-            | pl.col("human_match").eq(other=False)
-        )
         .sort(["experiment", "plate", "formulation_number"])
         .select(
             [
@@ -52,7 +48,10 @@ def main() -> None:
             ]
         )
     )
-    print(results.collect())
+    comp_results = results.filter(pl.col("match").eq(other=False))
+    human_results = results.filter(pl.col("human_match").eq(other=False))
+    print(comp_results.collect())
+    print(human_results.collect())
 
 
 def _parse_args() -> argparse.Namespace:
