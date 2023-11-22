@@ -295,7 +295,7 @@ def get_turbidity_stability_windows_from_database(
 ) -> pl.DataFrame:
     turbidities = (
         pl.read_database(
-            "SELECT experiment, plate, formulation_number, time, turbidity "
+            "SELECT time, turbidity "
             "FROM turbiditymeasurement "
             "LEFT JOIN reaction "
             "ON reaction_id = reaction.id "
@@ -330,7 +330,7 @@ def get_turbidity_aggregated_stability_windows_from_database(
 ) -> pl.DataFrame:
     turbidities = (
         pl.read_database(
-            "SELECT experiment, plate, formulation_number, time, turbidity "
+            "SELECT time, turbidity "
             "FROM turbiditymeasurement "
             "LEFT JOIN reaction "
             "ON reaction_id = reaction.id "
