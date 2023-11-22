@@ -11,6 +11,8 @@ from cagey._internal.tables import (
     Precursor,
     Reaction,
     Turbidity,
+    TurbidityDissolvedReference,
+    TurbidityMeasurement,
     add_tables,
 )
 
@@ -31,4 +33,6 @@ __all__ = [
     "Reaction",
     "turbidity",
     "Turbidity",
+    "TurbidityDissolvedReference",
+    "TurbidityMeasurement",
 ]

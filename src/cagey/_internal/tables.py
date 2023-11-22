@@ -157,6 +157,21 @@ class MassSpecTopologyAssignment(SQLModel, table=True):
     topology: str
 
 
+class TurbidityDissolvedReference(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    reaction_id: int = Field(foreign_key="reaction.id")
+    dissolved_reference: float
+
+    __table_args__ = (UniqueConstraint("reaction_id"),)
+
+
+class TurbidityMeasurement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    reaction_id: int = Field(foreign_key="reaction.id")
+    time: str
+    turbidity: float
+
+
 class TurbidState(StrEnum):
     DISSOLVED = auto()
     TURBID = auto()

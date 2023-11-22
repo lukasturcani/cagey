@@ -245,3 +245,12 @@ def get_turbidity_from_database(engine: Engine) -> pl.DataFrame:
         "ON reaction_id = reaction.id",
         engine.connect(),
     ).sort(["experiment", "plate", "formulation_number"])
+
+
+def plot_turbidity(
+    engine: Engine,
+    experiment: str,
+    plate: int,
+    formulation_number: int,
+):
+    pass

@@ -8,7 +8,12 @@ from sqlmodel.pool import StaticPool
 from tqdm import tqdm
 
 import cagey
-from cagey import Reaction, Turbidity
+from cagey import (
+    Reaction,
+    Turbidity,
+    TurbidityMeasurement,
+    TurbidityDissolvedReference,
+)
 
 
 def main() -> None:
@@ -36,6 +41,18 @@ def main() -> None:
                         data["turbidity_data"], dissolved_reference
                     ),
                 )
+            )
+            session.add(
+                TurbidityDissolvedReference(
+                    reaction_id=reaction.id,
+                    dissolved_reference=dissolved_reference,
+                )
+            )
+            session.add_all(
+                TurbidityMeasurement(
+                    reaction_id=reaction.id, time=time, turbidity=turbidity
+                )
+                for time, turbidity in data["turbidity_data"].items()
             )
         session.commit()
 
