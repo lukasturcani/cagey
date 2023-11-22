@@ -10,7 +10,12 @@ from sqlmodel import Session, select
 from cagey._internal.ms import get_spectrum as _get_ms_spectrum
 from cagey._internal.ms import get_topologies
 from cagey._internal.nmr import get_spectrum as _get_nmr_spectrum
-from cagey._internal.tables import MassSpectrum, Precursor, Reaction
+from cagey._internal.tables import (
+    MassSpectrum,
+    Precursor,
+    Reaction,
+    TurbidityDissolvedReference,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,10 +252,33 @@ def get_turbidity_from_database(engine: Engine) -> pl.DataFrame:
     ).sort(["experiment", "plate", "formulation_number"])
 
 
-def plot_turbidity(
+def get_turbidity_dissolved_reference_from_database(
+    engine: Engine
+) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, dissolved_reference "
+        "FROM turbiditydissolvedreference "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_turbidity_measurements_from_database(
     engine: Engine,
-    experiment: str,
-    plate: int,
-    formulation_number: int,
-):
-    pass
+) -> pl.DataFrame:
+    return (
+        pl.read_database(
+            "SELECT experiment, plate, formulation_number, time, turbidity "
+            "FROM turbiditymeasurement "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id ",
+            engine.connect(),
+        )
+        .with_columns(
+            pl.col("time").str.strptime(
+                pl.Datetime, format="%Y_%m_%d_%H_%M_%S_%f"
+            ),
+        )
+        .sort("time")
+    )

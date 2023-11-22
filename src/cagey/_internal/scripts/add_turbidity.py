@@ -11,8 +11,8 @@ import cagey
 from cagey import (
     Reaction,
     Turbidity,
-    TurbidityMeasurement,
     TurbidityDissolvedReference,
+    TurbidityMeasurement,
 )
 
 

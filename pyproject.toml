@@ -16,6 +16,9 @@ dependencies = [
   "rdkit",
   "tqdm",
   "types-tqdm",
+  "notebook",
+  "plotly",
+  "ipywidgets",
 ]
 requires-python = "==3.11.*"
 dynamic = ["version"]
@@ -33,7 +36,6 @@ dev = [
   "build",
   "twine",
   "furo",
-  "notebook",
 ]
 
 [project.scripts]
