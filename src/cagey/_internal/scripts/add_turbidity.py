@@ -5,6 +5,7 @@ from typing import TypedDict
 
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
+from tqdm import tqdm
 
 import cagey
 from cagey import Reaction, Turbidity
@@ -19,7 +20,7 @@ def main() -> None:
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        for path in args.data:
+        for path in tqdm(args.data, desc="adding turbidity data"):
             data = _read_json(path)
             dissolved_reference = data["turbidity_dissolved_reference"]
             reaction_query = select(Reaction).where(
