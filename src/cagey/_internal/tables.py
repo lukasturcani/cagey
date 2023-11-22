@@ -168,6 +168,8 @@ class Turbidity(SQLModel, table=True):
     reaction_id: int = Field(foreign_key="reaction.id")
     state: TurbidState
 
+    __table_args__ = (UniqueConstraint("reaction_id"),)
+
 
 def add_tables(database: Path) -> None:
     engine = create_engine(

@@ -235,3 +235,13 @@ def get_separation() -> pl.Expr:
     return (pl.col("separation_mz") - pl.col("spectrum_mz")) - (
         1 / pl.col("charge")
     )
+
+
+def get_turbidity_from_database(engine: Engine) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, state "
+        "FROM turbidity "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])

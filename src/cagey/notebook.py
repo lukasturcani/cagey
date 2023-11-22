@@ -10,6 +10,7 @@ from cagey._internal.notebook import (
     get_nmr_imine_peaks_from_database,
     get_nmr_imine_peaks_from_file,
     get_reactions_from_database,
+    get_turbidity_from_database,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "get_nmr_imine_peaks_from_database",
     "get_nmr_imine_peaks_from_file",
     "get_reactions_from_database",
+    "get_turbidity_from_database",
 ]
