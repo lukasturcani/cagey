@@ -1,3 +1,4 @@
+from enum import StrEnum, auto
 from operator import attrgetter
 from pathlib import Path
 
@@ -154,6 +155,18 @@ class MassSpecTopologyAssignment(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)  # noqa: A003
     mass_spec_peak_id: int = Field(foreign_key="massspecpeak.id")
     topology: str
+
+
+class TurbidState(StrEnum):
+    DISSOLVED = auto()
+    TURBID = auto()
+    NOT_DETERMINED = auto()
+
+
+class Turbidity(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    reaction_id: int = Field(foreign_key="reaction.id")
+    state: TurbidState
 
 
 def add_tables(database: Path) -> None:

@@ -1,6 +1,6 @@
 """Streamlined automated data analysis."""
 
-from cagey import ms, nmr, notebook, reactions
+from cagey import ms, nmr, notebook, reactions, turbidity
 from cagey._internal.tables import (
     MassSpecPeak,
     MassSpecTopologyAssignment,
@@ -10,6 +10,7 @@ from cagey._internal.tables import (
     NmrSpectrum,
     Precursor,
     Reaction,
+    Turbidity,
     add_tables,
 )
 
@@ -28,4 +29,6 @@ __all__ = [
     "NmrSpectrum",
     "Precursor",
     "Reaction",
+    "turbidity",
+    "Turbidity",
 ]

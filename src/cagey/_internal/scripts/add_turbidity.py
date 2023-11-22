@@ -1,60 +1,42 @@
 import argparse
 import json
-from enum import Enum, auto
 from pathlib import Path
-from typing import TypeAlias
+from typing import TypedDict
 
-import polars as pl
+from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel.pool import StaticPool
 
-Json: TypeAlias = int | float | str | None | list["Json"] | dict[str, "Json"]
-
-
-class TurbidState(Enum):
-    DISSOLVED = auto()
-    TURBID = auto()
-    NOT_DETERMINED = auto()
+import cagey
+from cagey import Reaction, Turbidity
 
 
 def main() -> None:
-    pl.Config.set_tbl_rows(-1)
-    pl.Config.set_tbl_cols(-1)
     args = _parse_args()
-    for path in args.data:
-        data = _read_json(path)
-        dissolved_reference = data["turbidity_dissolved_reference"]
-        turbidity = turbidity_from_json(data["turbidity_data"])
-        turbidity = average_turbidity(turbidity)
-        turbidity_result = (
-            turbidity.with_columns(
-                stable=pl.col("turbidity")
-                .is_between(pl.col("lower_bound"), pl.col("upper_bound"))
-                .or_(pl.col("turbidities").list.len() == 1),
+    engine = create_engine(
+        f"sqlite:///{args.database}",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        for path in args.data:
+            data = _read_json(path)
+            dissolved_reference = data["turbidity_dissolved_reference"]
+            reaction_query = select(Reaction).where(
+                Reaction.experiment == data["experiment"],
+                Reaction.plate == data["plate"],
+                Reaction.formulation_number == data["formulation_number"],
             )
-            .with_columns(
-                group=(
-                    (pl.col("stable") != pl.col("stable").shift(1))
-                    .fill_null(value=True)
-                    .cum_sum()
-                ),
+            reaction = session.exec(reaction_query).one()
+            session.add(
+                Turbidity(
+                    reaction_id=reaction.id,
+                    state=cagey.turbidity.get_turbid_state(
+                        data["turbidity_data"], dissolved_reference
+                    ),
+                )
             )
-            .group_by("group")
-            .agg(
-                time_delta=pl.max("time") - pl.min("time"),
-                mean_turbidity=pl.mean("turbidity"),
-            )
-            .filter(
-                pl.col("time_delta") >= pl.duration(minutes=1),
-            )
-        ).collect()
-        if turbidity_result.is_empty():
-            state = TurbidState.NOT_DETERMINED
-        elif (
-            turbidity_result.row(0, named=True)["mean_turbidity"]
-            < dissolved_reference
-        ):
-            state = TurbidState.DISSOLVED
-        else:
-            state = TurbidState.TURBID
+        session.commit()
 
 
 def _parse_args() -> argparse.Namespace:
@@ -64,38 +46,14 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _read_json(path: Path) -> Json:
+class TurbidityData(TypedDict):
+    experiment: str
+    plate: int
+    formulation_number: int
+    turbidity_data: dict[str, float]
+    turbidity_dissolved_reference: float
+
+
+def _read_json(path: Path) -> TurbidityData:
     with path.open() as file:
         return json.load(file)
-
-
-def turbidity_from_json(turbidity_json: dict[str, float]) -> pl.LazyFrame:
-    return (
-        pl.DataFrame(
-            {
-                "time": list(turbidity_json.keys()),
-                "turbidity": list(turbidity_json.values()),
-            }
-        )
-        .with_columns(
-            pl.col("time").str.strptime(
-                pl.Datetime, format="%Y_%m_%d_%H_%M_%S_%f"
-            ),
-        )
-        .sort("time")
-        .lazy()
-    )
-
-
-def average_turbidity(turbidity: pl.LazyFrame) -> pl.LazyFrame:
-    return (
-        turbidity.rolling("time", period="1m", offset="0", closed="both")
-        .agg(
-            turbidities=pl.col("turbidity"),
-            mean=pl.mean("turbidity"),
-            std=pl.std("turbidity"),
-            lower_bound=pl.mean("turbidity") - 3 * pl.std("turbidity"),
-            upper_bound=pl.mean("turbidity") + 3 * pl.std("turbidity"),
-        )
-        .join(turbidity, on="time")
-    )
