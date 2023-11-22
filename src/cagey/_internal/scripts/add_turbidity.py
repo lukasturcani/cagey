@@ -11,14 +11,7 @@ Json: TypeAlias = int | float | str | None | list["Json"] | dict[str, "Json"]
 
 class TurbidState(Enum):
     DISSOLVED = auto()
-    SATURATED = auto()
-    STABLE = auto()
-    UNSTABLE = auto()
-
-
-class Category(Enum):
-    DISSOLVED = auto()
-    UNDISSOLVED = auto()
+    TURBID = auto()
     NOT_DETERMINED = auto()
 
 
@@ -54,16 +47,14 @@ def main() -> None:
             )
         ).collect()
         if turbidity_result.is_empty():
-            category = Category.NOT_DETERMINED
+            state = TurbidState.NOT_DETERMINED
         elif (
             turbidity_result.row(0, named=True)["mean_turbidity"]
             < dissolved_reference
         ):
-            category = Category.DISSOLVED
+            state = TurbidState.DISSOLVED
         else:
-            category = Category.UNDISSOLVED
-
-        print(category)
+            state = TurbidState.TURBID
 
 
 def _parse_args() -> argparse.Namespace:
