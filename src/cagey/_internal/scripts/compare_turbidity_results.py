@@ -44,9 +44,11 @@ def main() -> None:
                 "experiment",
                 "plate",
                 "formulation_number",
+                "human_state",
                 "state",
                 "state_right",
                 "match",
+                "human_match",
             ]
         )
     )
@@ -73,7 +75,10 @@ def _get_old_results(path: Path) -> pl.LazyFrame:
             }
         )
         .with_columns(
-            pl.col("plate").str.strip_prefix("PLATE").cast(pl.Int64),
+            pl.col("plate")
+            .str.strip_prefix("PLATE")
+            .str.replace("2B", "4")
+            .cast(pl.Int64),
             pl.col("state").map_dict(
                 {
                     "dissolved": "DISSOLVED",
