@@ -19,6 +19,7 @@ dependencies = [
   "notebook",
   "plotly",
   "ipywidgets",
+  "statsmodels",
 ]
 requires-python = "==3.11.*"
 dynamic = ["version"]

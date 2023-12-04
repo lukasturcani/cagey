@@ -175,7 +175,7 @@ class TurbidityMeasurement(SQLModel, table=True):
 class TurbidState(StrEnum):
     DISSOLVED = auto()
     TURBID = auto()
-    NOT_DETERMINED = auto()
+    UNSTABLE = auto()
 
 
 class Turbidity(SQLModel, table=True):
