@@ -12,7 +12,7 @@ def get_turbid_state(
     result = turbidity.collect()
     if result.is_empty():
         return TurbidState.UNSTABLE
-    if result.row(0, named=True)["mean_turbidity"] < dissolved_reference:
+    if result.row(0, named=True)["mean_turbidity"] < dissolved_reference + 1:
         return TurbidState.DISSOLVED
     return TurbidState.TURBID
 
