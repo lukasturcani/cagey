@@ -256,7 +256,7 @@ def get_turbidity_from_database(engine: Engine) -> pl.DataFrame:
 
 
 def get_turbidity_dissolved_reference_from_database(
-    engine: Engine
+    engine: Engine,
 ) -> pl.DataFrame:
     return pl.read_database(
         "SELECT experiment, plate, formulation_number, dissolved_reference "
