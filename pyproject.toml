@@ -19,6 +19,7 @@ dependencies = [
   "notebook",
   "plotly",
   "ipywidgets",
+  "typer[all]",
 ]
 requires-python = "==3.11.*"
 dynamic = ["version"]
@@ -40,20 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-cagey-rename-ms-csv = "cagey._internal.scripts.rename_ms_csv:main"
-cagey-rename-ms-folder = "cagey._internal.scripts.rename_ms_folder:main"
-cagey-rename-turbidity-folder = "cagey._internal.scripts.rename_turbidity_folder:main"
-cagey-update-turbidity-output-data = "cagey._internal.scripts.update_turbidity_output_data:main"
-cagey-fix-nmr-title = "cagey._internal.scripts.fix_nmr_title:main"
-cagey-add-tables = "cagey._internal.scripts.add_tables:main"
-cagey-add-reactions = "cagey._internal.scripts.add_reactions:main"
-cagey-add-ms = "cagey._internal.scripts.add_ms:main"
-cagey-add-ms-from-csv = "cagey._internal.scripts.add_ms_from_csv:main"
-cagey-add-nmr = "cagey._internal.scripts.add_nmr:main"
-cagey-add-turbidity = "cagey._internal.scripts.add_turbidity:main"
-cagey-compare-nmr-results = "cagey._internal.scripts.compare_nmr_results:main"
-cagey-compare-ms-results = "cagey._internal.scripts.compare_ms_results:main"
-cagey-compare-turbidity-results = "cagey._internal.scripts.compare_turbidity_results:main"
+cagey = "cagey._internal.scripts.cagey:app"
 
 [project.urls]
 github = "https://github.com/lukasturcani/cagey"
