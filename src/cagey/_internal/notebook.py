@@ -10,7 +10,15 @@ from sqlmodel import Session, select
 from cagey._internal.ms import get_spectrum as _get_ms_spectrum
 from cagey._internal.ms import get_topologies
 from cagey._internal.nmr import get_spectrum as _get_nmr_spectrum
-from cagey._internal.tables import MassSpectrum, Precursor, Reaction
+from cagey._internal.tables import (
+    MassSpectrum,
+    Precursor,
+    Reaction,
+)
+from cagey._internal.turbidity import (
+    get_aggregated_stability_windows,
+    get_stability_windows,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,3 +243,116 @@ def get_separation() -> pl.Expr:
     return (pl.col("separation_mz") - pl.col("spectrum_mz")) - (
         1 / pl.col("charge")
     )
+
+
+def get_turbidity_from_database(engine: Engine) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, state "
+        "FROM turbidity "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_turbidity_dissolved_reference_from_database(
+    engine: Engine,
+) -> pl.DataFrame:
+    return pl.read_database(
+        "SELECT experiment, plate, formulation_number, dissolved_reference "
+        "FROM turbiditydissolvedreference "
+        "LEFT JOIN reaction "
+        "ON reaction_id = reaction.id",
+        engine.connect(),
+    ).sort(["experiment", "plate", "formulation_number"])
+
+
+def get_turbidity_measurements_from_database(
+    engine: Engine,
+) -> pl.DataFrame:
+    return (
+        pl.read_database(
+            "SELECT experiment, plate, formulation_number, time, turbidity "
+            "FROM turbiditymeasurement "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id ",
+            engine.connect(),
+        )
+        .with_columns(
+            pl.col("time").str.strptime(
+                pl.Datetime, format="%Y_%m_%d_%H_%M_%S_%f"
+            ),
+        )
+        .sort("time")
+    )
+
+
+def get_turbidity_stability_windows_from_database(
+    experiment: str,
+    plate: int,
+    formulation_number: int,
+    engine: Engine,
+) -> pl.DataFrame:
+    turbidities = (
+        pl.read_database(
+            "SELECT time, turbidity "
+            "FROM turbiditymeasurement "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id "
+            "WHERE experiment = :experiment "
+            "AND plate = :plate "
+            "AND formulation_number = :formulation_number",
+            engine.connect(),
+            execute_options={
+                "parameters": {
+                    "experiment": experiment,
+                    "plate": plate,
+                    "formulation_number": formulation_number,
+                }
+            },
+        )
+        .lazy()
+        .with_columns(
+            pl.col("time").str.strptime(
+                pl.Datetime, format="%Y_%m_%d_%H_%M_%S_%f"
+            ),
+        )
+        .sort("time")
+    )
+    return get_stability_windows(turbidities).collect()
+
+
+def get_turbidity_aggregated_stability_windows_from_database(
+    experiment: str,
+    plate: int,
+    formulation_number: int,
+    engine: Engine,
+) -> pl.DataFrame:
+    turbidities = (
+        pl.read_database(
+            "SELECT time, turbidity "
+            "FROM turbiditymeasurement "
+            "LEFT JOIN reaction "
+            "ON reaction_id = reaction.id "
+            "WHERE experiment = :experiment "
+            "AND plate = :plate "
+            "AND formulation_number = :formulation_number",
+            engine.connect(),
+            execute_options={
+                "parameters": {
+                    "experiment": experiment,
+                    "plate": plate,
+                    "formulation_number": formulation_number,
+                }
+            },
+        )
+        .lazy()
+        .with_columns(
+            pl.col("time").str.strptime(
+                pl.Datetime, format="%Y_%m_%d_%H_%M_%S_%f"
+            ),
+        )
+        .sort("time")
+    )
+    turbidities = get_stability_windows(turbidities)
+    return get_aggregated_stability_windows(turbidities).collect()

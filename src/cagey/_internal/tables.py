@@ -1,3 +1,4 @@
+from enum import StrEnum, auto
 from operator import attrgetter
 from pathlib import Path
 
@@ -22,7 +23,7 @@ class Reaction(SQLModel, table=True):
         UniqueConstraint("experiment", "plate", "formulation_number"),
     )
 
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     experiment: str
     plate: int
     formulation_number: int
@@ -31,7 +32,7 @@ class Reaction(SQLModel, table=True):
 
 
 class NmrSpectrum(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     reaction_id: int = Field(foreign_key="reaction.id")
 
     aldehyde_peaks: list["NmrAldehydePeak"] = Relationship(
@@ -65,7 +66,7 @@ class NmrSpectrum(SQLModel, table=True):
 
 
 class NmrAldehydePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
     ppm: float
     amplitude: float
@@ -74,7 +75,7 @@ class NmrAldehydePeak(SQLModel, table=True):
 
 
 class NmrIminePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
     ppm: float
     amplitude: float
@@ -83,7 +84,7 @@ class NmrIminePeak(SQLModel, table=True):
 
 
 class MassSpectrum(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     reaction_id: int = Field(foreign_key="reaction.id")
 
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
@@ -128,7 +129,7 @@ def get_separation() -> pl.Expr:
 
 
 class MassSpecPeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
     di_count: int
     tri_count: int
@@ -151,9 +152,38 @@ class MassSpecPeak(SQLModel, table=True):
 
 
 class MassSpecTopologyAssignment(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)  # noqa: A003
+    id: int | None = Field(default=None, primary_key=True)
     mass_spec_peak_id: int = Field(foreign_key="massspecpeak.id")
     topology: str
+
+
+class TurbidityDissolvedReference(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    reaction_id: int = Field(foreign_key="reaction.id")
+    dissolved_reference: float
+
+    __table_args__ = (UniqueConstraint("reaction_id"),)
+
+
+class TurbidityMeasurement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    reaction_id: int = Field(foreign_key="reaction.id")
+    time: str
+    turbidity: float
+
+
+class TurbidState(StrEnum):
+    DISSOLVED = auto()
+    TURBID = auto()
+    UNSTABLE = auto()
+
+
+class Turbidity(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    reaction_id: int = Field(foreign_key="reaction.id")
+    state: TurbidState
+
+    __table_args__ = (UniqueConstraint("reaction_id"),)
 
 
 def add_tables(database: Path) -> None:
