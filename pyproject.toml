@@ -38,6 +38,7 @@ dev = [
   "build",
   "twine",
   "furo",
+  "rich",
 ]
 
 [project.scripts]
