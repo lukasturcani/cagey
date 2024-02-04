@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import Annotated
-from rich.tree import Tree
-from rich.text import Text
-from rich import print
-from rich.console import Group
-from rich.panel import Panel
-from rich.syntax import Syntax
 
 import typer
+from rich import print
+from rich.console import Group
+from rich.markup import escape
+from rich.panel import Panel
+from rich.tree import Tree
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -42,86 +41,114 @@ def main() -> None:
     sub-commands.
 
     """
+    return
 
 
-data_tree = Tree(":open_file_folder: data")
-ms = data_tree.add(":open_file_folder: ms")
-ms.add(
-    ":open_file_folder: "
-    "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/].d"
-).add(":open_file_folder: AcqData").add("...")
-ms.add(
-    ":open_file_folder: "
-    "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]01[/].d"
-).add(":open_file_folder: AcqData").add("...")
-ms.add(
-    ":open_file_folder: "
-    "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]02[/].d"
-).add(":open_file_folder: AcqData").add("...")
-ms.add("...")
+def print_folder_structure() -> None:
+    data_tree = Tree(":open_file_folder: data")
+    ms = data_tree.add(":open_file_folder: ms")
+    ms.add(
+        escape(
+            ":open_file_folder: "
+            "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/].d"
+        )
+    ).add(":open_file_folder: AcqData").add("...")
+    ms.add(
+        escape(
+            ":open_file_folder: "
+            "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]01[/].d"
+        )
+    ).add(":open_file_folder: AcqData").add("...")
+    ms.add("...")
 
-nmr = data_tree.add(":open_file_folder: nmr")
-nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
-    "..."
-).add(
-    Group(
-        "📄 title",
-        Panel.fit(
-            "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/]",
-            border_style="red",
-        ),
-    )
-)
-nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
-    "..."
-).add(
-    Group(
-        "📄 title",
-        Panel.fit(
-            "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]19[/]",
-            border_style="red",
-        ),
-    )
-)
-nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
-    "..."
-).add(
-    Group(
-        "📄 title",
-        Panel.fit(
-            "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]20[/]",
-            border_style="red",
-        ),
-    )
-)
-
-
-turbidity = data_tree.add(":open_file_folder: turbidity")
-turbidity.add(":open_file_folder: ...").add(
-    Group(
-        "📄 turbidity_data.json",
-        Panel.fit(
-            Syntax(
-                '{\n\t"experiment": "AB-02-005",\n\t"plate": 1,\n\t'
-                '"formulation_number": 4\n}',
-                "json",
+    nmr = data_tree.add(":open_file_folder: nmr")
+    nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
+        "..."
+    ).add(
+        Group(
+            "📄 title",
+            Panel.fit(
+                escape(
+                    "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/]"
+                ),
+                border_style="red",
             ),
-            border_style="red",
-        ),
+        )
     )
-)
+    nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
+        "..."
+    ).add(
+        Group(
+            "📄 title",
+            Panel.fit(
+                escape(
+                    "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]19[/]"
+                ),
+                border_style="red",
+            ),
+        )
+    )
+    turbidity = data_tree.add(":open_file_folder: turbidity")
+    turbidity.add(":open_file_folder: ...").add(
+        Group(
+            "📄 turbidity_data.json",
+            Panel.fit(
+                escape(
+                    '{[red]"experiment"[/]: [yellow]"AB-02-005"[/], '
+                    '[red]"plate"[/]: [medium_purple2]1[/], '
+                    '[red]"formulation_number"[/]: [medium_purple2]4[/]}'
+                ),
+                border_style="red",
+            ),
+        )
+    )
 
-print(data_tree)
+    print(data_tree)
 
 
 @app.command(
     no_args_is_help=True,
-    help="""
-    Create a new database.
+    help="""Create a new database.
 
-    To create a new database you must provide a folder containing the data
-    in a standardised format. This folder should have structure of the
-    following form:
+To create a new database you must provide a folder containing the data
+in a standardised format. This folder should have structure of the
+following form:
+
+📂 data
+├── 📂 ms
+│   ├── 📂 [pale_turquoise1]experiment[/]_[green_yellow]plate[/]_\
+[plum1]formulation-number[/].d
+│   │   └── 📂 AcqData
+│   │       └── ...
+│   ├── 📂 [pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]01[/].d
+│   │   └── 📂 AcqData
+│   │       └── ...
+│   └── ...
+├── 📂 nmr
+│   ├── 📂 ...
+│   │   └── 📂 pdata
+│   │       └── ...
+│   │           └── 📄 title
+│   │               ╭─────────────────────────────────────╮
+│   │               │ [pale_turquoise1]experiment[/]_[green_yellow]plate[/]\
+_[plum1]formulation-number[/] │
+│   │               ╰─────────────────────────────────────╯
+│   └── 📂 ...
+│       └── 📂 pdata
+│           └── ...
+│               └── 📄 title
+│                   ╭─────────────────╮
+│                   │ [pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_\
+[plum1]19[/] │
+│                   ╰─────────────────╯
+└── 📂 turbidity
+    └── 📂 ...
+        └── 📄 turbidity_data.json
+            ╭──────────────────────────────────────────────────────────────────╮
+            │ {[red]"experiment"[/]: [yellow]"AB-02-005"[/], \
+[red]"plate"[/]: [medium_purple2]1[/], \
+[red]"formulation_number"[/]: [medium_purple2]4[/]} │
+            ╰──────────────────────────────────────────────────────────────────╯
 
     """,
 )
@@ -131,7 +158,7 @@ def new(
     ],
     database: Annotated[Path, typer.Argument(help="The new database file.")],
 ) -> None:
-    pass
+    return
 
 
 @app.command(no_args_is_help=True)
