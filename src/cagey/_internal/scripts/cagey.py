@@ -34,6 +34,8 @@ def main() -> None:
 
     [bold green underline]How it works[/]
 
+    First your create a new database using the \
+[bright_magenta]cagey[/] [bold green]new[/] command.
 
     [bold green underline]How to use it[/]
 
