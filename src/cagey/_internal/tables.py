@@ -142,46 +142,52 @@ class MassSpecPeak(SQLModel, table=True):
 
     Parameters:
         id: Unique identifier of the peak.
-        mass_spectrum_id: ID of the mass spectrum this peak belongs to.
-        di_count: Number of di-topic precursors in the peak.
-        tri_count: Number of tri-topic precursors in the peak.
+        mass_spectrum_id:
+            ID of the :class:`.MassSpectrum` this peak belongs to.
+        di_count:
+            Number of di-topic precursors in the cage responsible for the peak.
+        tri_count:
+            Number of tri-topic precursors in the cage responsible
+            for the peak.
         adduct: Adduct of the peak.
         charge: Charge of the peak.
-        calculated_mz: Calculated m/z of the peak.
-        spectrum_mz: m/z of the peak in the spectrum.
-        separation_mz: m/z of the separation.
+        calculated_mz: Predicted m/z of the cage responsible for the peak.
+        spectrum_mz: The m/z of the cage peak in the spectrum.
+        separation_mz: The m/z of the separation peak.
         intensity: Intensity of the peak.
     """
 
     id: int | None = Field(default=None, primary_key=True)
     """Unique identifier of the peak."""
     mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
-    """ID of the mass spectrum this peak belongs to."""
+    """ID of the :class:`.MassSpectrum` this peak belongs to."""
     di_count: int
-    """Number of di-topic precursors in the peak."""
+    """Number of di-topic precursors in the cage responsible for the peak."""
     tri_count: int
-    """Number of tri-topic precursors in the peak."""
+    """Number of tri-topic precursors in the cage responsible for the peak."""
     adduct: str
     """Adduct of the peak."""
     charge: int
     """Charge of the peak."""
     calculated_mz: float
-    """Calculated m/z of the peak."""
+    """Predicted m/z of the cage responsible for the peak."""
     spectrum_mz: float
-    """m/z of the peak in the spectrum."""
+    """The m/z of the cage peak in the spectrum."""
     separation_mz: float
-    """m/z of the separation."""
+    """The m/z of the separation peak."""
     intensity: float
     """Intensity of the peak."""
     mass_spectrum: MassSpectrum = Relationship(back_populates="peaks")
-    """Mass spectrum this peak belongs to."""
+    """:class:`.MassSpectrum` this peak belongs to."""
 
     def get_ppm_error(self) -> float:
+        """Get the ppm difference between the predicted and measured peaks."""
         return abs(
             (self.calculated_mz - self.spectrum_mz) / self.calculated_mz * 1e6
         )
 
     def get_separation(self) -> float:
+        """Get the difference between the separation and cage peaks."""
         return self.separation_mz - self.spectrum_mz
 
 
