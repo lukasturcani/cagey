@@ -28,30 +28,59 @@ class Precursor(SQLModel, table=True):
 
 
 class Reaction(SQLModel, table=True):
+    """A reaction for making a cage.
+
+    Parameters:
+        id: Unique identifier of the reaction.
+        experiment: Name of the experiment.
+        plate: Number of the plate.
+        formulation_number: Number of the formulation.
+        di_name: Name of the di-topic precursor.
+        tri_name: Name of the tri-topic precursor.
+    """
+
     __table_args__ = (
         UniqueConstraint("experiment", "plate", "formulation_number"),
     )
 
     id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the reaction."""
     experiment: str
+    """Name of the experiment."""
     plate: int
+    """Number of the plate."""
     formulation_number: int
+    """Number of the formulation."""
     di_name: str = Field(foreign_key="precursor.name")
+    """Name of the di-topic precursor."""
     tri_name: str = Field(foreign_key="precursor.name")
+    """Name of the tri-topic precursor."""
 
 
 class NmrSpectrum(SQLModel, table=True):
+    """NMR spectrum of a reaction.
+
+    Parameters:
+        id: Unique identifier of the spectrum.
+        reaction_id: ID of the :class:`.Reaction` this spectrum belongs to.
+    """
+
     id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the spectrum."""
     reaction_id: int = Field(foreign_key="reaction.id")
+    """ID of the :class:`.Reaction` this spectrum belongs to."""
 
     aldehyde_peaks: list["NmrAldehydePeak"] = Relationship(
         back_populates="nmr_spectrum",
     )
+    """Peaks corresponding to aldehydes found in the spectrum."""
     imine_peaks: list["NmrIminePeak"] = Relationship(
         back_populates="nmr_spectrum"
     )
+    """Peaks corresponding to imines found in the spectrum."""
 
     def get_aldehyde_peak_df(self) -> pl.DataFrame:
+        """Get the aldehyde peaks as a DataFrame."""
         return pl.DataFrame(
             {
                 "peak_id": list(map(attrgetter("id"), self.aldehyde_peaks)),
@@ -63,6 +92,7 @@ class NmrSpectrum(SQLModel, table=True):
         )
 
     def get_imine_peak_df(self) -> pl.DataFrame:
+        """Get the imine peaks as a DataFrame."""
         return pl.DataFrame(
             {
                 "peak_id": list(map(attrgetter("id"), self.imine_peaks)),
@@ -75,30 +105,66 @@ class NmrSpectrum(SQLModel, table=True):
 
 
 class NmrAldehydePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    ppm: float
-    amplitude: float
+    """Peak corresponding to an aldehyde in an NMR spectrum.
 
+    Parameters:
+        id: Unique identifier of the peak.
+        nmr_spectrum_id: ID of the :class:`.NmrSpectrum` this peak belongs to.
+        ppm: Chemical shift of the peak in ppm.
+        amplitude: Amplitude of the peak.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the peak."""
+    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
+    """ID of the :class:`.NmrSpectrum` this peak belongs to."""
+    ppm: float
+    """Chemical shift of the peak in ppm."""
+    amplitude: float
+    """Amplitude of the peak."""
     nmr_spectrum: NmrSpectrum = Relationship(back_populates="aldehyde_peaks")
+    """The :class:`.NmrSpectrum` this peak belongs to."""
 
 
 class NmrIminePeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
-    ppm: float
-    amplitude: float
+    """Peak corresponding to an imine in an NMR spectrum.
 
+    Parameters:
+        id: Unique identifier of the peak.
+        nmr_spectrum_id: ID of the :class:`.NmrSpectrum` this peak belongs to.
+        ppm: Chemical shift of the peak in ppm.
+        amplitude: Amplitude of the peak.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the peak."""
+    nmr_spectrum_id: int = Field(foreign_key="nmrspectrum.id")
+    """ID of the :class:`.NmrSpectrum` this peak belongs to."""
+    ppm: float
+    """Chemical shift of the peak in ppm."""
+    amplitude: float
+    """Amplitude of the peak."""
     nmr_spectrum: NmrSpectrum = Relationship(back_populates="imine_peaks")
+    """The :class:`.NmrSpectrum` this peak belongs to."""
 
 
 class MassSpectrum(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    reaction_id: int = Field(foreign_key="reaction.id")
+    """Mass spectrum of a reaction.
 
+    Parameters:
+        id: Unique identifier of the spectrum.
+        reaction_id: ID of the :class:`.Reaction` this spectrum belongs to.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the spectrum."""
+    reaction_id: int = Field(foreign_key="reaction.id")
+    """ID of the :class:`.Reaction` this spectrum belongs to."""
     peaks: list["MassSpecPeak"] = Relationship(back_populates="mass_spectrum")
+    """Peaks found in the spectrum."""
 
     def get_peak_df(self) -> pl.DataFrame:
+        """Get the peaks of the spectrum as a DataFrame."""
         return pl.DataFrame(
             {
                 "mass_spec_peak_id": list(map(attrgetter("id"), self.peaks)),
