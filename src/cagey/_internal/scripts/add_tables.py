@@ -1,12 +1,12 @@
 import argparse
 from pathlib import Path
 
-from cagey import add_tables
+from cagey import add
 
 
 def main() -> None:
     args = _parse_args()
-    add_tables(args.database)
+    add(args.database)
 
 
 def _parse_args() -> argparse.Namespace:

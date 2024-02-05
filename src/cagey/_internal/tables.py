@@ -186,7 +186,7 @@ class Turbidity(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("reaction_id"),)
 
 
-def add_tables(database: Path) -> None:
+def add(database: Path) -> None:
     engine = create_engine(
         f"sqlite:///{database}",
         connect_args={"check_same_thread": False},
