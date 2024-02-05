@@ -13,6 +13,10 @@ Welcome to cagey's documentation!
 
   Modules <modules>
 
+First and foremost ``cagey`` is a command line tool for creating and managing a cage
+database. With ``cagey`` you will extract a a range of experimental and computational
+data in a variety of formats and place it into a single file. You can then use this file
+as input for your scripts which perform data analysis.
 
 
 Indices and tables
