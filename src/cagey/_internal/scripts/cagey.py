@@ -81,7 +81,12 @@ the [bright_magenta]cagey[/] database.
 [bold green underline]How to use it[/]
 
 [bright_magenta]cagey[/] is a command line tool composed of several \
-sub-commands."""
+sub-commands. You can see a list of these sub-commands by running \
+[bright_magenta]cagey[/] [blue]help[/]. You can get help on how to use \
+each sub-command by running \
+[bright_magenta]cagey[/] [green]sub-command[/] [blue]help[/]. For example, \
+to get help on how to use the [green]new[/] sub-command, you would run \
+[bright_magenta]cagey[/] [green]new[/] [blue]help[/]. """
     )
 
 
