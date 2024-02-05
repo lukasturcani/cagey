@@ -60,9 +60,10 @@ like. I strongly reccomend using polars - \
 https://docs.pola.rs/user-guide/getting-started - \
 as it is much faster than pandas, and has more intuitive API.
 
-The database you create is a standard SQLite database, meaing the data \
+The database you create is a standard SQLite database, meaning the data \
 comes in the form of tables, and you can use SQL to query the data. \
-You do not have to know SQL to use [bright_magenta]cagey[/], but it is \
+You do not have to know SQL to use [bright_magenta]cagey[/], Python will be \
+sufficient, but it is \
 useful to know, as it will allow you to do more complex queries. If you \
 would like to learn SQL, I reccomend the following tutorial - \
 https://www.codecademy.com/learn/learn-sql - it takes about 5 hours to \
