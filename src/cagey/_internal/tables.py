@@ -258,9 +258,21 @@ class MassSpecPeak(SQLModel, table=True):
 
 
 class MassSpecTopologyAssignment(SQLModel, table=True):
+    """Assignment of a mass spectrum peak to a cage topology.
+
+    Parameters:
+        id: Unique identifier of the assignment.
+        mass_spec_peak_id: ID of the :class:`.MassSpecPeak` this assignment
+            belongs to.
+        topology: Topology of the cage responsible for the peak.
+    """
+
     id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the assignment."""
     mass_spec_peak_id: int = Field(foreign_key="massspecpeak.id")
+    """ID of the :class:`.MassSpecPeak` this assignment belongs to."""
     topology: str
+    """Topology of the cage responsible for the peak."""
 
 
 class TurbidityDissolvedReference(SQLModel, table=True):
