@@ -14,8 +14,17 @@ from sqlmodel.pool import StaticPool
 
 
 class Precursor(SQLModel, table=True):
+    """Cage precursor molecules.
+
+    Parameters:
+        name: Human-usable name of the precursor molecule.
+        smiles: SMILES representation of the precursor molecule.
+    """
+
     name: str = Field(primary_key=True)
+    """Human-usable of the precursor molecule."""
     smiles: str
+    """SMILES representation of the precursor molecule."""
 
 
 class Reaction(SQLModel, table=True):
@@ -129,18 +138,43 @@ def get_separation() -> pl.Expr:
 
 
 class MassSpecPeak(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    calculated_mz: float
-    spectrum_mz: float
-    separation_mz: float
-    intensity: float
+    """Peak in a mass spectrum.
 
+    Parameters:
+        id: Unique identifier of the peak.
+        mass_spectrum_id: ID of the mass spectrum this peak belongs to.
+        di_count: Number of di-topic precursors in the peak.
+        tri_count: Number of tri-topic precursors in the peak.
+        adduct: Adduct of the peak.
+        charge: Charge of the peak.
+        calculated_mz: Calculated m/z of the peak.
+        spectrum_mz: m/z of the peak in the spectrum.
+        separation_mz: m/z of the separation.
+        intensity: Intensity of the peak.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    """Unique identifier of the peak."""
+    mass_spectrum_id: int = Field(foreign_key="massspectrum.id")
+    """ID of the mass spectrum this peak belongs to."""
+    di_count: int
+    """Number of di-topic precursors in the peak."""
+    tri_count: int
+    """Number of tri-topic precursors in the peak."""
+    adduct: str
+    """Adduct of the peak."""
+    charge: int
+    """Charge of the peak."""
+    calculated_mz: float
+    """Calculated m/z of the peak."""
+    spectrum_mz: float
+    """m/z of the peak in the spectrum."""
+    separation_mz: float
+    """m/z of the separation."""
+    intensity: float
+    """Intensity of the peak."""
     mass_spectrum: MassSpectrum = Relationship(back_populates="peaks")
+    """Mass spectrum this peak belongs to."""
 
     def get_ppm_error(self) -> float:
         return abs(
