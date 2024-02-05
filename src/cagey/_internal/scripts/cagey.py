@@ -69,9 +69,18 @@ would like to learn SQL, I reccomend the following tutorial - \
 https://www.codecademy.com/learn/learn-sql - it takes about 5 hours to \
 complete.
 
+Once you have your database you will write your own Python scripts to \
+read the data held by it and perform data analysis on it. You won't need \
+to have [bright_magenta]cagey[/] installed to do this step! \
+[bright_magenta]cagey[/] is just a command line tool to help you create and \
+manage your database. The \
+[bright_magenta]cagey[/] documentation - https://cagey.readthedocs.io \
+- contains examples for writing your own Python data analysis scripts using \
+the [bright_magenta]cagey[/] database.
+
 [bold green underline]How to use it[/]
 
-[birght_magenta]cagey[/] is a command line tool composed of several \
+[bright_magenta]cagey[/] is a command line tool composed of several \
 sub-commands."""
     )
 
