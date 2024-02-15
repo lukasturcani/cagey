@@ -18,7 +18,7 @@ app = typer.Typer(
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
-app.command(name="new")(cagey_new.main)
+app.command(no_args_is_help=True, name="new")(cagey_new.main)
 
 
 @app.callback()
