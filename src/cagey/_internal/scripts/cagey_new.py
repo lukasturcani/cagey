@@ -4,6 +4,7 @@ from typing import Annotated
 import typer
 from rich.console import Console, Group
 from rich.panel import Panel
+from rich.prompt import Confirm
 from rich.tree import Tree
 
 console = Console()
@@ -17,7 +18,14 @@ def main(
 
     Get help with [bright_magenta]cagey[/] [green]help[/] [blue]new[/].
     """
-    return
+    if database.exists():
+        overwrite = Confirm.ask(
+            f"Database file [yellow2]{database}[/] already exists. "
+            "Overwrite it?",
+            default=False,
+        )
+        if not overwrite:
+            raise typer.Abort
 
 
 def help() -> None:  # noqa: A001
