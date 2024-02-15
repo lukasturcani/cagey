@@ -1,12 +1,16 @@
-from pathlib import Path
-from typing import Annotated
+from enum import StrEnum
+from typing import assert_never
 
 import typer
-from rich import print
-from rich.console import Console, Group
-from rich.markup import escape
-from rich.panel import Panel
-from rich.tree import Tree
+from rich.console import Console
+
+from cagey._internal.scripts import cagey_new
+
+
+class Topic(StrEnum):
+    INTRO = "intro"
+    NEW = "new"
+
 
 console = Console()
 
@@ -14,20 +18,32 @@ app = typer.Typer(
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
+app.command(name="new")(cagey_new.main)
 
 
 @app.callback()
 def main() -> None:
     """A cage database tool.
 
-    Run [bright_magenta]cagey[/] [blue]help[/] for an introduction.
+    Run [bright_magenta]cagey[/] [blue]help[/] \
+[green]intro[/] for an introduction.
     """
     return
 
 
-@app.command()
-def help() -> None:  # noqa: A001
+@app.command(no_args_is_help=True)
+def help(topic: Topic) -> None:  # noqa: A001
     """Get help on how to use [bright_magenta]cagey[/]."""
+    match topic:
+        case Topic.NEW:
+            cagey_new.help()
+        case Topic.INTRO:
+            print_help()
+        case _ as unreachable:
+            assert_never(unreachable)
+
+
+def print_help() -> None:
     console.print(
         """
 [bright_magenta]cagey[/] creates and manages a database of cage data so \
@@ -51,7 +67,7 @@ First your create a new database using the \
 database file and populate it with the data in the folder you provide. \
 The data in the folder should be organised in a standardised format, \
 described in help of the [green]new[/] command, i.e. when you run \
-[bright_magenta]cagey[/] [green]new[/] [blue]help[/]. Your database file \
+[bright_magenta]cagey[/] [green]help[/] [blue]new[/]. Your database file \
 will contain all the data in the folder, but in a standardised format. \
 The data in the database can be extracted into data frames, so that \
 you can work with polars, pandas, or any other data analysis library you \
@@ -84,145 +100,17 @@ the [bright_magenta]cagey[/] database.
 sub-commands. You can see a list of these sub-commands by running \
 [bright_magenta]cagey[/]. You can get help on how to use \
 each sub-command by running \
-[bright_magenta]cagey[/] [green]sub-command[/] [blue]help[/]. For example, \
+[bright_magenta]cagey[/] [green]help[/] [blue]sub-command[/]. For example, \
 to get help on how to use the [green]new[/] sub-command, you would run \
-[bright_magenta]cagey[/] [green]new[/] [blue]help[/].
+[bright_magenta]cagey[/] [green]help[/] [blue]new[/].
 
 Normally you will use [bright_magenta]cagey[/] [green]new[/] to create a new \
 database, and [bright_magenta]cagey[/] [green]insert[/] to insert new data \
 into the database. That's pretty much it! Once you have your database you can \
 write your own Python scripts to read the data held by it and perform data \
 analysis on it. Look at https://cagey.readthedocs.io for examples of how to \
-do this.
-"""
+do this."""
     )
-
-
-def print_folder_structure() -> None:
-    data_tree = Tree(":open_file_folder: data")
-    ms = data_tree.add(":open_file_folder: ms")
-    ms.add(
-        escape(
-            ":open_file_folder: "
-            "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/].d"
-        )
-    ).add(":open_file_folder: AcqData").add("...")
-    ms.add(
-        escape(
-            ":open_file_folder: "
-            "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]01[/].d"
-        )
-    ).add(":open_file_folder: AcqData").add("...")
-    ms.add("...")
-
-    nmr = data_tree.add(":open_file_folder: nmr")
-    nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
-        "..."
-    ).add(
-        Group(
-            "📄 title",
-            Panel.fit(
-                escape(
-                    "[pale_turquoise1]experiment[/]_[green_yellow]plate[/]_[plum1]formulation-number[/]"
-                ),
-                border_style="red",
-            ),
-        )
-    )
-    nmr.add(":open_file_folder: ...").add(":open_file_folder: pdata").add(
-        "..."
-    ).add(
-        Group(
-            "📄 title",
-            Panel.fit(
-                escape(
-                    "[pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]19[/]"
-                ),
-                border_style="red",
-            ),
-        )
-    )
-    turbidity = data_tree.add(":open_file_folder: turbidity")
-    turbidity.add(":open_file_folder: ...").add(
-        Group(
-            "📄 turbidity_data.json",
-            Panel.fit(
-                escape(
-                    '{[red]"experiment"[/]: [yellow]"AB-02-005"[/], '
-                    '[red]"plate"[/]: [medium_purple2]1[/], '
-                    '[red]"formulation_number"[/]: [medium_purple2]4[/]}'
-                ),
-                border_style="red",
-            ),
-        )
-    )
-
-    print(data_tree)
-
-
-@app.command(
-    no_args_is_help=True,
-    help="""Create a new database.
-
-To create a new database you must provide a folder containing the data
-in a standardised format. This folder should have structure of the
-following form:
-
-📂 data
-├── 📂 ms
-│   ├── 📂 [pale_turquoise1]experiment[/]_[green_yellow]plate[/]_\
-[plum1]formulation-number[/].d
-│   │   └── 📂 AcqData
-│   │       └── ...
-│   ├── 📂 [pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_[plum1]01[/].d
-│   │   └── 📂 AcqData
-│   │       └── ...
-│   └── ...
-├── 📂 nmr
-│   ├── 📂 ...
-│   │   └── 📂 pdata
-│   │       └── ...
-│   │           └── 📄 title
-│   │               ╭─────────────────────────────────────╮
-│   │               │ [pale_turquoise1]experiment[/]_[green_yellow]plate[/]\
-_[plum1]formulation-number[/] │
-│   │               ╰─────────────────────────────────────╯
-│   └── 📂 ...
-│       └── 📂 pdata
-│           └── ...
-│               └── 📄 title
-│                   ╭─────────────────╮
-│                   │ [pale_turquoise1]AB-02-005[/]_[green_yellow]01[/]_\
-[plum1]19[/] │
-│                   ╰─────────────────╯
-└── 📂 turbidity
-    └── 📂 ...
-        └── 📄 turbidity_data.json
-            ╭──────────────────────────────────────────────────────────────────╮
-            │ {[red]"experiment"[/]: [yellow]"AB-02-005"[/], \
-[red]"plate"[/]: [medium_purple2]1[/], \
-[red]"formulation_number"[/]: [medium_purple2]4[/]} │
-            ╰──────────────────────────────────────────────────────────────────╯
-
-    """,
-)
-def new(
-    data: Annotated[
-        Path, typer.Argument(help="The data to store in the database.")
-    ],
-    database: Annotated[Path, typer.Argument(help="The new database file.")],
-) -> None:
-    return
-
-
-@app.command(no_args_is_help=True)
-def insert(
-    data: Annotated[
-        Path, typer.Argument(help="The data to store in the database.")
-    ],
-    database: Annotated[Path, typer.Argument(help="The database file.")],
-) -> None:
-    """Scan a folder for new data and insert it into the database."""
 
 
 if __name__ == "__main__":
