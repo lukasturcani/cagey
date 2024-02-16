@@ -1,5 +1,3 @@
-# ruff: noqa: T201
-
 import pkgutil
 import subprocess
 import tempfile
@@ -11,7 +9,8 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, assert_never
 
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+from rich import print
+from rich.progress import Progress, TaskID
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, and_, or_, select
 
@@ -22,10 +21,13 @@ Di = aliased(Precursor)
 Tri = aliased(Precursor)
 
 
-def main(
+def main(  # noqa: PLR0913
     session: Session,
     machine_data: Sequence[Path],
     mzmine: Path,
+    progress: Progress,
+    ms_task: TaskID,
+    topology_assignment_task: TaskID,
 ) -> None:
     reaction_keys = tuple(map(ReactionKey.from_path, machine_data))
     reaction_query = select(Reaction, Di, Tri).where(
@@ -34,7 +36,9 @@ def main(
 
     reactions = {
         ReactionKey.from_reaction(reaction): ReactionData(
-            reaction=reaction, di=di, tri=tri
+            reaction=_Reaction.from_reaction(reaction),
+            di=_Precursor.from_precursor(di),
+            tri=_Precursor.from_precursor(tri),
         )
         for reaction, di, tri in session.exec(reaction_query).all()
     }
@@ -42,33 +46,24 @@ def main(
     with Pool() as pool:
         failures = []
         spectrums = []
-        with Progress(
-            SpinnerColumn(
-                spinner_name="bouncingBall",
-                finished_text="[green]:heavy_check_mark:",
-            ),
-            *Progress.get_default_columns(),
-            TimeElapsedColumn(),
-            transient=False,
-        ) as progress:
-            for result in progress.track(
-                pool.imap_unordered(
-                    get_mass_spectrum,
-                    map(
-                        partial(_get_mass_spectrum_input, reactions),
-                        machine_data,
-                    ),
+        progress.start_task(ms_task)
+        for result in progress.track(
+            pool.imap_unordered(
+                get_mass_spectrum,
+                map(
+                    partial(_get_mass_spectrum_input, reactions),
+                    machine_data,
                 ),
-                description="Adding mass spectra",
-                total=len(machine_data),
-            ):
-                match result:
-                    case MassSpectrum():
-                        spectrums.append(result)
-                    case MassSpectrumError():
-                        failures.append(result)
-                    case _ as unreachable:
-                        assert_never(unreachable)
+            ),
+            task_id=ms_task,
+        ):
+            match result:
+                case MassSpectrum():
+                    spectrums.append(result)
+                case MassSpectrumError():
+                    failures.append(result)
+                case _ as unreachable:
+                    assert_never(unreachable)
     if failures:
         failures_repr = textwrap.indent(
             text="\n".join(failure.to_str() for failure in failures),
@@ -77,19 +72,13 @@ def main(
         print(f"failed to process: [\n{failures_repr},\n]")
     session.add_all(spectrums)
     session.commit()
-    with Progress(
-        SpinnerColumn(
-            spinner_name="bouncingBall",
-            finished_text="[green]:heavy_check_mark:",
-        ),
-        *Progress.get_default_columns(),
-        TimeElapsedColumn(),
-        transient=False,
-    ) as progress:
-        for spectrum in progress.track(
-            spectrums, description="Adding topology assignments"
-        ):
-            session.add_all(cagey.ms.get_topologies(spectrum))
+    progress.start_task(topology_assignment_task)
+    for spectrum in progress.track(
+        spectrums,
+        description="Adding topology assignments",
+        task_id=topology_assignment_task,
+    ):
+        session.add_all(cagey.ms.get_topologies(spectrum))
     session.commit()
 
 
@@ -112,10 +101,44 @@ class ReactionKey:
 
 
 @dataclass(frozen=True, slots=True)
+class _Reaction:
+    id: int
+    experiment: str
+    plate: int
+    formulation_number: int
+    di_name: str
+    tri_name: str
+
+    @staticmethod
+    def from_reaction(reaction: Reaction) -> "_Reaction":
+        if not isinstance(reaction.id, int):
+            msg = f"reaction id is not an int: {reaction}"
+            raise TypeError(msg)
+        return _Reaction(
+            id=reaction.id,
+            experiment=reaction.experiment,
+            plate=reaction.plate,
+            formulation_number=reaction.formulation_number,
+            di_name=reaction.di_name,
+            tri_name=reaction.tri_name,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _Precursor:
+    name: str
+    smiles: str
+
+    @staticmethod
+    def from_precursor(precursor: Precursor) -> "_Precursor":
+        return _Precursor(name=precursor.name, smiles=precursor.smiles)
+
+
+@dataclass(frozen=True, slots=True)
 class ReactionData:
-    reaction: Reaction
-    di: Precursor
-    tri: Precursor
+    reaction: _Reaction
+    di: _Precursor
+    tri: _Precursor
 
 
 def _get_mass_spectrum_input(

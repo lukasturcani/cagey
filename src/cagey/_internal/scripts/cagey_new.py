@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 from rich.console import Console, Group
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+from rich.progress import Progress, SpinnerColumn, TaskID, TimeElapsedColumn
 from rich.prompt import Confirm
 from rich.tree import Tree
 from sqlmodel import Session, SQLModel, create_engine
@@ -58,9 +58,50 @@ def main(
         poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        _add_reactions(session)
-        _add_ms(session, data, mzmine)
+    with Session(engine) as session, Progress(
+        SpinnerColumn(
+            finished_text="[green]:heavy_check_mark:",
+        ),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        transient=False,
+    ) as progress:
+        reactions_task = progress.add_task(
+            "[green]Adding reactions",
+            total=5,
+            start=False,
+        )
+        ms_data = tuple(data.glob("ms/*.d"))
+        ms_task = progress.add_task(
+            "[green]Adding mass spectra",
+            total=len(ms_data),
+            start=False,
+        )
+        topology_assignment_task = progress.add_task(
+            "[green]Assigning topologies",
+            start=False,
+        )
+        nmr_task = progress.add_task(
+            "[green]Adding NMR",
+            start=False,
+        )
+        turbidity_task = progress.add_task(
+            "[green]Adding turbidity",
+            start=False,
+        )
+        _add_reactions(
+            session,
+            progress,
+            reactions_task,
+        )
+        add_ms.main(
+            session,
+            ms_data,
+            mzmine,
+            progress,
+            ms_task,
+            topology_assignment_task,
+        )
 
 
 def help() -> None:  # noqa: A001
@@ -137,31 +178,15 @@ def folder_structure() -> Tree:
     return data_tree
 
 
-def _add_reactions(session: Session) -> None:
-    with Progress(
-        SpinnerColumn(
-            spinner_name="bouncingBall",
-            finished_text="[green]:heavy_check_mark:",
-        ),
-        *Progress.get_default_columns(),
-        TimeElapsedColumn(),
-        transient=False,
-    ) as progress:
-        task = progress.add_task(
-            "[green]Adding reactions",
-            total=5,
-        )
-        cagey.reactions.add_precursors(session, commit=False)
-        progress.update(task, advance=1)
-        cagey.reactions.add_ab_02_005_data(session, commit=False)
-        progress.update(task, advance=1)
-        cagey.reactions.add_ab_02_007_data(session, commit=False)
-        progress.update(task, advance=1)
-        cagey.reactions.add_ab_02_009_data(session, commit=False)
-        progress.update(task, advance=1)
-        session.commit()
-        progress.update(task, advance=1)
-
-
-def _add_ms(session: Session, data: Path, mzmine: Path) -> None:
-    add_ms.main(session, tuple(data.glob("ms/*.d")), mzmine)
+def _add_reactions(session: Session, progress: Progress, task: TaskID) -> None:
+    progress.start_task(task)
+    cagey.reactions.add_precursors(session, commit=False)
+    progress.update(task, advance=1)
+    cagey.reactions.add_ab_02_005_data(session, commit=False)
+    progress.update(task, advance=1)
+    cagey.reactions.add_ab_02_007_data(session, commit=False)
+    progress.update(task, advance=1)
+    cagey.reactions.add_ab_02_009_data(session, commit=False)
+    progress.update(task, advance=1)
+    session.commit()
+    progress.update(task, advance=1)
