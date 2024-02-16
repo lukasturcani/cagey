@@ -1,62 +1,66 @@
 # ruff: noqa: T201
 
-import argparse
 import pkgutil
 import subprocess
 import tempfile
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, assert_never
 
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 from sqlalchemy.orm import aliased
-from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
-from sqlmodel.pool import StaticPool
-from tqdm import tqdm
+from sqlmodel import Session, and_, or_, select
 
 import cagey
-from cagey import MassSpectrum, Precursor, Reaction
+from cagey.tables import MassSpectrum, Precursor, Reaction
 
 Di = aliased(Precursor)
 Tri = aliased(Precursor)
 
 
-def main() -> None:
-    args = _parse_args()
-    engine = create_engine(
-        f"sqlite:///{args.database}",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    reaction_keys = tuple(map(ReactionKey.from_path, args.machine_data))
+def main(
+    session: Session,
+    machine_data: Sequence[Path],
+    mzmine: Path,
+) -> None:
+    reaction_keys = tuple(map(ReactionKey.from_path, machine_data))
     reaction_query = select(Reaction, Di, Tri).where(
         or_(*map(_get_reaction_query, reaction_keys))
     )
 
-    with Session(engine) as session:
-        reactions = {
-            ReactionKey.from_reaction(reaction): ReactionData(
-                reaction=reaction, di=di, tri=tri
-            )
-            for reaction, di, tri in session.exec(reaction_query).all()
-        }
-        get_mass_spectrum = partial(_get_mass_spectrum, args.mzmine)
-        with Pool() as pool:
-            failures = []
-            spectrums = []
-            for result in tqdm(
+    reactions = {
+        ReactionKey.from_reaction(reaction): ReactionData(
+            reaction=reaction, di=di, tri=tri
+        )
+        for reaction, di, tri in session.exec(reaction_query).all()
+    }
+    get_mass_spectrum = partial(_get_mass_spectrum, mzmine)
+    with Pool() as pool:
+        failures = []
+        spectrums = []
+        with Progress(
+            SpinnerColumn(
+                spinner_name="bouncingBall",
+                finished_text="[green]:heavy_check_mark:",
+            ),
+            *Progress.get_default_columns(),
+            TimeElapsedColumn(),
+            transient=False,
+        ) as progress:
+            for result in progress.track(
                 pool.imap_unordered(
                     get_mass_spectrum,
                     map(
                         partial(_get_mass_spectrum_input, reactions),
-                        args.machine_data,
+                        machine_data,
                     ),
                 ),
-                desc="adding mass spectra",
-                total=len(args.machine_data),
+                description="Adding mass spectra",
+                total=len(machine_data),
             ):
                 match result:
                     case MassSpectrum():
@@ -65,30 +69,28 @@ def main() -> None:
                         failures.append(result)
                     case _ as unreachable:
                         assert_never(unreachable)
-        if failures:
-            failures_repr = textwrap.indent(
-                text="\n".join(failure.to_str() for failure in failures),
-                prefix="\t",
-            )
-            print(f"failed to process: [\n{failures_repr},\n]")
-        session.add_all(spectrums)
-        session.commit()
-        for spectrum in tqdm(spectrums, desc="adding topology assignments"):
+    if failures:
+        failures_repr = textwrap.indent(
+            text="\n".join(failure.to_str() for failure in failures),
+            prefix="\t",
+        )
+        print(f"failed to process: [\n{failures_repr},\n]")
+    session.add_all(spectrums)
+    session.commit()
+    with Progress(
+        SpinnerColumn(
+            spinner_name="bouncingBall",
+            finished_text="[green]:heavy_check_mark:",
+        ),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        transient=False,
+    ) as progress:
+        for spectrum in progress.track(
+            spectrums, description="Adding topology assignments"
+        ):
             session.add_all(cagey.ms.get_topologies(spectrum))
-        session.commit()
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("database", type=Path)
-    parser.add_argument("machine_data", type=Path, nargs="+")
-    parser.add_argument(
-        "--mzmine",
-        type=Path,
-        default=Path("MZmine"),
-        help="path to MZmine version 3.4",
-    )
-    return parser.parse_args()
+    session.commit()
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,7 +213,3 @@ def _get_mass_spectrum(
     # process pool
     except Exception as ex:  # noqa: BLE001
         return MassSpectrumError(machine_data, ex)
-
-
-if __name__ == "__main__":
-    main()

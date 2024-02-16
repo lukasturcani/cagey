@@ -14,8 +14,6 @@ dependencies = [
   "nmrglue@git+https://github.com/jjhelmus/nmrglue",
   "pyopenms",
   "rdkit",
-  "tqdm",
-  "types-tqdm",
   "notebook",
   "plotly",
   "ipywidgets",

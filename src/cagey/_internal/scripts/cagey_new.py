@@ -1,11 +1,18 @@
+import subprocess
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console, Group
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 from rich.prompt import Confirm
 from rich.tree import Tree
+from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel.pool import StaticPool
+
+import cagey
+from cagey._internal.scripts import add_ms
 
 console = Console()
 
@@ -13,11 +20,28 @@ console = Console()
 def main(
     data: Annotated[Path, typer.Argument(help="Folder holding the data.")],
     database: Annotated[Path, typer.Argument(help="Database file to create.")],
+    mzmine: Annotated[
+        Path, typer.Option(help="Path to MZmine version 3.4.")
+    ] = Path("MZmine"),
 ) -> None:
     """Create a new database.
 
     Get help with [bright_magenta]cagey[/] [green]help[/] [blue]new[/].
     """
+    has_docker = (
+        subprocess.run(
+            ["/usr/bin/docker", "ps"],  # noqa: S603
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
+    if not has_docker:
+        console.print(
+            "Docker is not running. Please install and start Docker and "
+            "try again."
+        )
+        raise typer.Abort
     if database.exists():
         overwrite = Confirm.ask(
             f"Database file [yellow2]{database}[/] already exists. "
@@ -26,6 +50,17 @@ def main(
         )
         if not overwrite:
             raise typer.Abort
+        database.unlink()
+
+    engine = create_engine(
+        f"sqlite:///{database}",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        _add_reactions(session)
+        _add_ms(session, data, mzmine)
 
 
 def help() -> None:  # noqa: A001
@@ -100,3 +135,33 @@ def folder_structure() -> Tree:
         )
     )
     return data_tree
+
+
+def _add_reactions(session: Session) -> None:
+    with Progress(
+        SpinnerColumn(
+            spinner_name="bouncingBall",
+            finished_text="[green]:heavy_check_mark:",
+        ),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        transient=False,
+    ) as progress:
+        task = progress.add_task(
+            "[green]Adding reactions",
+            total=5,
+        )
+        cagey.reactions.add_precursors(session, commit=False)
+        progress.update(task, advance=1)
+        cagey.reactions.add_ab_02_005_data(session, commit=False)
+        progress.update(task, advance=1)
+        cagey.reactions.add_ab_02_007_data(session, commit=False)
+        progress.update(task, advance=1)
+        cagey.reactions.add_ab_02_009_data(session, commit=False)
+        progress.update(task, advance=1)
+        session.commit()
+        progress.update(task, advance=1)
+
+
+def _add_ms(session: Session, data: Path, mzmine: Path) -> None:
+    add_ms.main(session, tuple(data.glob("ms/*.d")), mzmine)
