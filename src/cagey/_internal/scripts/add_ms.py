@@ -123,6 +123,16 @@ class _Reaction:
             tri_name=reaction.tri_name,
         )
 
+    def to_reaction(self) -> Reaction:
+        return Reaction(
+            id=self.id,
+            experiment=self.experiment,
+            plate=self.plate,
+            formulation_number=self.formulation_number,
+            di_name=self.di_name,
+            tri_name=self.tri_name,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class _Precursor:
@@ -132,6 +142,9 @@ class _Precursor:
     @staticmethod
     def from_precursor(precursor: Precursor) -> "_Precursor":
         return _Precursor(name=precursor.name, smiles=precursor.smiles)
+
+    def to_precursor(self) -> Precursor:
+        return Precursor(name=self.name, smiles=self.smiles)
 
 
 @dataclass(frozen=True, slots=True)
@@ -230,7 +243,10 @@ def _get_mass_spectrum(
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
         return cagey.ms.get_spectrum(
-            csv, reaction_data.reaction, reaction_data.di, reaction_data.tri
+            csv,
+            reaction_data.reaction.to_reaction(),
+            reaction_data.di.to_precursor(),
+            reaction_data.tri.to_precursor(),
         )
     # catch any exception here because the function get called in a
     # process pool
