@@ -12,7 +12,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 import cagey
-from cagey._internal.scripts import add_ms
+from cagey._internal.scripts import add_ms, add_nmr
 
 console = Console()
 
@@ -81,8 +81,10 @@ def main(
             "[green]Assigning topologies",
             start=False,
         )
+        nmr_data = tuple(data.glob("nmr/**/title"))
         nmr_task = progress.add_task(
             "[green]Adding NMR",
+            total=len(nmr_data),
             start=False,
         )
         turbidity_task = progress.add_task(
@@ -101,6 +103,12 @@ def main(
             progress,
             ms_task,
             topology_assignment_task,
+        )
+        add_nmr.main(
+            session,
+            nmr_data,
+            progress,
+            nmr_task,
         )
 
 

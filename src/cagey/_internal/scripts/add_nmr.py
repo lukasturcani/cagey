@@ -1,49 +1,37 @@
-import argparse
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from sqlmodel import Session, SQLModel, and_, create_engine, or_, select
-from sqlmodel.pool import StaticPool
-from tqdm import tqdm
+from rich.progress import Progress, TaskID
+from sqlmodel import Session, and_, or_, select
 
 import cagey
-from cagey import Reaction
+from cagey.tables import Reaction
 
 
-def main() -> None:
-    args = _parse_args()
-
-    engine = create_engine(
-        f"sqlite:///{args.database}",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    reaction_keys = tuple(map(ReactionKey.from_title_file, args.title_file))
+def main(
+    session: Session,
+    title_files: Sequence[Path],
+    progress: Progress,
+    task_id: TaskID,
+) -> None:
+    reaction_keys = tuple(map(ReactionKey.from_title_file, title_files))
     reaction_query = select(Reaction).where(
         or_(*map(_get_reaction_query, reaction_keys))
     )
-    with Session(engine) as session:
-        reactions = {
-            ReactionKey.from_reaction(reaction): reaction
-            for reaction in session.exec(reaction_query).all()
-        }
-        for path, reaction_key in tqdm(
-            zip(args.title_file, reaction_keys, strict=True),
-            desc="adding nmr spectra",
-            total=len(args.title_file),
-        ):
-            reaction = reactions[reaction_key]
-            session.add(cagey.nmr.get_spectrum(path.parent, reaction))
-        session.commit()
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("database", type=Path)
-    parser.add_argument("title_file", type=Path, nargs="+")
-    return parser.parse_args()
+    reactions = {
+        ReactionKey.from_reaction(reaction): reaction
+        for reaction in session.exec(reaction_query).all()
+    }
+    progress.start_task(task_id)
+    for path, reaction_key in progress.track(
+        zip(title_files, reaction_keys, strict=True),
+        task_id=task_id,
+    ):
+        reaction = reactions[reaction_key]
+        session.add(cagey.nmr.get_spectrum(path.parent, reaction))
+    session.commit()
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +59,3 @@ def _get_reaction_query(reaction_key: ReactionKey) -> Any:
         Reaction.plate == reaction_key.plate,
         Reaction.formulation_number == reaction_key.formulation_number,
     )
-
-
-if __name__ == "__main__":
-    main()
