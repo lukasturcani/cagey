@@ -14,8 +14,6 @@ from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey._internal.queries import ReactionKey
-from cagey.tables import MassSpectrum, Precursor, Reaction
 
 
 def main(  # noqa: PLR0913
@@ -128,9 +126,8 @@ class _Precursor:
 
 @dataclass(frozen=True, slots=True)
 class ReactionData:
-    reaction: Reaction
-    di: Precursor
-    tri: Precursor
+    di_smiles: str
+    tri_smiles: str
 
 
 def _get_mass_spectrum_input(
@@ -216,16 +213,17 @@ class MassSpectrumError:
 def _get_mass_spectrum(
     mzmine: Path,
     spectrum_data: tuple[ReactionData, Path],
-) -> MassSpectrum | MassSpectrumError:
+) -> list[cagey.ms.MassSpectrumPeak] | MassSpectrumError:
     try:
         reaction_data, machine_data = spectrum_data
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
-        return cagey.ms.get_spectrum(
-            csv,
-            reaction_data.reaction.to_reaction(),
-            reaction_data.di.to_precursor(),
-            reaction_data.tri.to_precursor(),
+        return list(
+            cagey.ms.get_peaks(
+                csv,
+                reaction_data.di_smiles,
+                reaction_data.tri_smiles,
+            )
         )
     # catch any exception here because the function get called in a
     # process pool

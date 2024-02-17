@@ -7,7 +7,7 @@ import polars as pl
 import rdkit.Chem.AllChem as rdkit  # noqa: N813
 from pyopenms import EmpiricalFormula
 
-from cagey._internal.queries import Row
+from cagey._internal.queries import MassSpectrumPeak, Row
 
 ADDUCTS = (
     EmpiricalFormula("H1"),
@@ -82,18 +82,6 @@ PRECURSOR_COUNTS = (
     (6, 9),
     (8, 12),
 )
-
-
-@dataclass(frozen=True, slots=True)
-class MassSpectrumPeak:
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    calculated_mz: float
-    spectrum_mz: float
-    separation_mz: float
-    intensity: float
 
 
 def get_peaks(  # noqa: PLR0913
