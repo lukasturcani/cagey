@@ -65,8 +65,11 @@ def main(  # noqa: PLR0913
             prefix="\t",
         )
         print(f"failed to process ms spectra: [\n{failures_repr}\n]")
-    session.add_all(spectrums)
-    session.commit()
+    for spectrum in spectrums:
+        cagey.queries.insert_mass_spectrum(
+            connection, spectrum.reaction_id, spectrum.peaks, commit=False
+        )
+    connection.commit()
     progress.start_task(topology_assignment_task)
     for spectrum in progress.track(
         spectrums,
