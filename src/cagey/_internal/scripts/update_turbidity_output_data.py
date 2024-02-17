@@ -13,7 +13,11 @@ class ReactionData:
 
     @staticmethod
     def from_path(path: Path) -> "ReactionData":
-        if "july23" in path.parent.name:
+        while path.parent.parent.parent.stem not in {
+            "AB-02-005",
+            "AB-02-007",
+            "AB-02-009",
+        }:
             path = path.parent
         return ReactionData(
             formulation_number=int(path.parent.name.split("_")[-1]),
