@@ -9,7 +9,6 @@ maintainers = [
 ]
 
 dependencies = [
-  "sqlmodel",
   "polars[connectorx,pyarrow]",
   "nmrglue@git+https://github.com/jjhelmus/nmrglue",
   "pyopenms",
@@ -18,6 +17,7 @@ dependencies = [
   "plotly",
   "ipywidgets",
   "typer[all]",
+  "rich",
 ]
 requires-python = "==3.11.*"
 dynamic = ["version"]
@@ -36,7 +36,7 @@ dev = [
   "build",
   "twine",
   "furo",
-  "rich",
+  "sqlfluff"
 ]
 
 [project.scripts]

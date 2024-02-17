@@ -7,22 +7,18 @@ from dataclasses import dataclass
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
+from sqlite3 import Connection
 from typing import Any, assert_never
 
 from rich import print
 from rich.progress import Progress, TaskID
-from sqlalchemy.orm import aliased
-from sqlmodel import Session, and_, or_, select
 
 import cagey
 from cagey.tables import MassSpectrum, Precursor, Reaction
 
-Di = aliased(Precursor)
-Tri = aliased(Precursor)
-
 
 def main(  # noqa: PLR0913
-    session: Session,
+    connection: Connection,
     machine_data: Sequence[Path],
     mzmine: Path,
     progress: Progress,
@@ -80,24 +76,6 @@ def main(  # noqa: PLR0913
     ):
         session.add_all(cagey.ms.get_topologies(spectrum))
     session.commit()
-
-
-@dataclass(frozen=True, slots=True)
-class ReactionKey:
-    experiment: str
-    plate: int
-    formulation_number: int
-
-    @staticmethod
-    def from_path(path: Path) -> "ReactionKey":
-        experiment, plate, formulation_number = path.stem.split("_")
-        return ReactionKey(experiment, int(plate), int(formulation_number))
-
-    @staticmethod
-    def from_reaction(reaction: Reaction) -> "ReactionKey":
-        return ReactionKey(
-            reaction.experiment, reaction.plate, reaction.formulation_number
-        )
 
 
 @dataclass(frozen=True, slots=True)

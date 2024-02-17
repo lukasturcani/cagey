@@ -34,6 +34,9 @@ check:
   echo
   ( set -x; make -C docs doctest )
 
+  echo
+  ( set -x; sqlfluff lint . )
+
   test $error = 0
 
 # Auto-fix code issues.
