@@ -69,7 +69,7 @@ def main(  # noqa: PLR0913
             text="\n".join(failure.to_str() for failure in failures),
             prefix="\t",
         )
-        print(f"failed to process: [\n{failures_repr},\n]")
+        print(f"failed to process ms spectra: [\n{failures_repr}\n]")
     session.add_all(spectrums)
     session.commit()
     progress.start_task(topology_assignment_task)
