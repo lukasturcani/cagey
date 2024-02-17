@@ -14,6 +14,7 @@ from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
+from cagey._internal.queries import ReactionKey
 from cagey.tables import MassSpectrum, Precursor, Reaction
 
 
@@ -25,7 +26,7 @@ def main(  # noqa: PLR0913
     ms_task: TaskID,
     topology_assignment_task: TaskID,
 ) -> None:
-    reaction_keys = tuple(map(ReactionKey.from_path, machine_data))
+    reaction_keys = tuple(map(ReactionKey.from_ms_path, machine_data))
     reaction_query = select(Reaction, Di, Tri).where(
         or_(*map(_get_reaction_query, reaction_keys))
     )
@@ -127,9 +128,9 @@ class _Precursor:
 
 @dataclass(frozen=True, slots=True)
 class ReactionData:
-    reaction: _Reaction
-    di: _Precursor
-    tri: _Precursor
+    reaction: Reaction
+    di: Precursor
+    tri: Precursor
 
 
 def _get_mass_spectrum_input(

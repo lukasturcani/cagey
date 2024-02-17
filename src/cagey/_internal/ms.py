@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
@@ -7,13 +7,7 @@ import polars as pl
 import rdkit.Chem.AllChem as rdkit  # noqa: N813
 from pyopenms import EmpiricalFormula
 
-from cagey._internal.tables import (
-    MassSpecPeak,
-    MassSpecTopologyAssignment,
-    MassSpectrum,
-    Precursor,
-    Reaction,
-)
+from cagey._internal.queries import Row
 
 ADDUCTS = (
     EmpiricalFormula("H1"),
@@ -90,11 +84,22 @@ PRECURSOR_COUNTS = (
 )
 
 
-def get_spectrum(  # noqa: PLR0913
+@dataclass(frozen=True, slots=True)
+class MassSpectrumPeak:
+    di_count: int
+    tri_count: int
+    adduct: str
+    charge: int
+    calculated_mz: float
+    spectrum_mz: float
+    separation_mz: float
+    intensity: float
+
+
+def get_peaks(  # noqa: PLR0913
     path: Path,
-    reaction: Reaction,
-    di: Precursor,
-    tri: Precursor,
+    di_smiles: str,
+    tri_smiles: str,
     *,
     calculated_peak_tolerance: float = 0.1,
     separation_peak_tolerance: float = 0.1,
@@ -102,13 +107,12 @@ def get_spectrum(  # noqa: PLR0913
     max_separation: float = 0.02,
     min_peak_height: float = 1e4,
     max_between_peak_height: float = 0.7,
-) -> MassSpectrum:
+) -> Iterator[MassSpectrumPeak]:
     peaks = (
         pl.scan_csv(path).filter(pl.col("height") > min_peak_height).collect()
     )
-    mass_spectrum = MassSpectrum(reaction_id=reaction.id)
-    di_formula = _get_precursor_formula(di)
-    tri_formula = _get_precursor_formula(tri)
+    di_formula = _get_precursor_formula(di_smiles)
+    tri_formula = _get_precursor_formula(tri_smiles)
     for adduct, charge, (tri_count, di_count) in product(
         ADDUCTS, CHARGES, PRECURSOR_COUNTS
     ):
@@ -160,27 +164,20 @@ def get_spectrum(  # noqa: PLR0913
                 and abs(separation - 1 / charge) <= max_separation
                 and between_peaks.is_empty()
             ):
-                mass_spectrum.peaks.append(
-                    MassSpecPeak(
-                        di_count=di_count,
-                        tri_count=tri_count,
-                        adduct=str(adduct.toString()),
-                        charge=charge,
-                        calculated_mz=cage_mz,
-                        spectrum_mz=cage_peak["mz"],
-                        separation_mz=separation_mz,
-                        intensity=cage_peak["height"],
-                    )
+                yield MassSpectrumPeak(
+                    di_count=di_count,
+                    tri_count=tri_count,
+                    adduct=str(adduct.toString()),
+                    charge=charge,
+                    calculated_mz=cage_mz,
+                    spectrum_mz=cage_peak["mz"],
+                    separation_mz=separation_mz,
+                    intensity=cage_peak["height"],
                 )
-    return mass_spectrum
 
 
-def _get_precursor_formula(
-    precursor: Precursor,
-) -> EmpiricalFormula:
-    return EmpiricalFormula(
-        rdkit.CalcMolFormula(rdkit.MolFromSmiles(precursor.smiles))
-    )
+def _get_precursor_formula(smiles: str) -> EmpiricalFormula:
+    return EmpiricalFormula(rdkit.CalcMolFormula(rdkit.MolFromSmiles(smiles)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,12 +202,6 @@ class ReactionKey:
             plate=int(plate[1:]),
             formulation_number=formulation_number,
         )
-
-
-@dataclass(frozen=True, slots=True)
-class ReactionData:
-    path: Path
-    reaction: Reaction
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,25 +231,36 @@ def _get_cage_mz(
     return cage_weight / charge
 
 
+@dataclass(frozen=True, slots=True)
+class MassSpectrumTopologyAssignment:
+    mass_spectrum_peak_id: int
+    topology: str
+
+
 def get_topologies(
-    spectrum: MassSpectrum,
-) -> Iterator[MassSpecTopologyAssignment]:
+    peaks: Iterable[Row[MassSpectrumPeak]],
+) -> Iterator[MassSpectrumTopologyAssignment]:
     valid_peaks = tuple(
         peak
-        for peak in spectrum.peaks
-        if (peak.tri_count, peak.di_count) != (3, 5) and peak.charge in {1, 2}
+        for peak in peaks
+        if (peak.item.tri_count, peak.item.di_count) != (3, 5)
+        and peak.item.charge in {1, 2}
     )
 
     has_four_plus_six = any(
-        peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
+        peak.item.tri_count == 4 and peak.item.di_count == 6  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_singly_charged_2_plus_3 = any(
-        peak.charge == 1 and peak.tri_count == 2 and peak.di_count == 3  # noqa: PLR2004
+        peak.item.charge == 1
+        and peak.item.tri_count == 2  # noqa: PLR2004
+        and peak.item.di_count == 3  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_doubly_charged_2_plus_3 = any(
-        peak.charge == 2 and peak.tri_count == 2 and peak.di_count == 3  # noqa: PLR2004
+        peak.item.charge == 2  # noqa: PLR2004
+        and peak.item.tri_count == 2  # noqa: PLR2004
+        and peak.item.di_count == 3  # noqa: PLR2004
         for peak in valid_peaks
     )
     avoid_2_plus_3 = (
@@ -267,15 +269,19 @@ def get_topologies(
         and not has_doubly_charged_2_plus_3
     )
     has_eight_plus_twelve = any(
-        peak.tri_count == 8 and peak.di_count == 12  # noqa: PLR2004
+        peak.item.tri_count == 8 and peak.item.di_count == 12  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_singly_charged_4_plus_6 = any(
-        peak.charge == 1 and peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
+        peak.item.charge == 1
+        and peak.item.tri_count == 4  # noqa: PLR2004
+        and peak.item.di_count == 6  # noqa: PLR2004
         for peak in valid_peaks
     )
     has_doubly_charged_4_plus_6 = any(
-        peak.charge == 2 and peak.tri_count == 4 and peak.di_count == 6  # noqa: PLR2004
+        peak.item.charge == 2  # noqa: PLR2004
+        and peak.item.tri_count == 4  # noqa: PLR2004
+        and peak.item.di_count == 6  # noqa: PLR2004
         for peak in valid_peaks
     )
     avoid_4_plus_6 = (
@@ -284,12 +290,12 @@ def get_topologies(
         and not has_doubly_charged_4_plus_6
     )
     for peak in valid_peaks:
-        topology = f"{peak.tri_count}+{peak.di_count}"
+        topology = f"{peak.item.tri_count}+{peak.item.di_count}"
         if avoid_2_plus_3 and topology == "2+3":
             continue
         if avoid_4_plus_6 and topology == "4+6":
             continue
-        yield MassSpecTopologyAssignment(
-            mass_spec_peak_id=peak.id,
-            topology=f"{peak.tri_count}+{peak.di_count}",
+        yield MassSpectrumTopologyAssignment(
+            mass_spectrum_peak_id=peak.id,
+            topology=f"{peak.item.tri_count}+{peak.item.di_count}",
         )
