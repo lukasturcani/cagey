@@ -17,6 +17,7 @@ class ReactionKey:
         experiment, plate, formulation_number = path.stem.split("_")
         return ReactionKey(experiment, int(plate), int(formulation_number))
 
+
 @dataclass(frozen=True, slots=True)
 class MassSpectrumPeak:
     di_count: int
@@ -27,6 +28,7 @@ class MassSpectrumPeak:
     spectrum_mz: float
     separation_mz: float
     intensity: float
+
 
 T = TypeVar("T")
 
@@ -73,13 +75,13 @@ def insert_mass_spectrum(
             separation_mz,
             intensity
         ) VALUES (
-            {cursor.lastrowid}
+            {cursor.lastrowid},
             :di_count,
             :tri_count,
             :adduct,
             :charge,
             :calculated_mz,
-            :speectrum_mz,
+            :spectrum_mz,
             :separation_mz,
             :intensity
         )
