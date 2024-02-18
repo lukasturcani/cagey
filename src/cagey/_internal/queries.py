@@ -17,6 +17,12 @@ class ReactionKey:
         experiment, plate, formulation_number = path.stem.split("_")
         return ReactionKey(experiment, int(plate), int(formulation_number))
 
+    @staticmethod
+    def from_title_file(title_file: Path) -> "ReactionKey":
+        title = title_file.read_text()
+        experiment, plate, formulation_number = title.split("_")
+        return ReactionKey(experiment, int(plate), int(formulation_number))
+
 
 @dataclass(frozen=True, slots=True)
 class MassSpectrumPeak:
@@ -55,6 +61,10 @@ class CreateTablesError(Exception):
 
 
 class InsertMassSpectrumError(Exception):
+    pass
+
+
+class InsertNmrSpectrumError(Exception):
     pass
 
 
@@ -246,3 +256,67 @@ def reaction_precursors(
             ReactionKey(experiment, plate, formulation_number),
             Precursors(di_smiles, tri_smiles),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class NmrPeak:
+    ppm: float
+    amplitude: float
+
+
+NmrSpectrumId = NewType("NmrSpectrumId", int)
+NmrAldehydePeakId = NewType("NmrAldehydePeakId", int)
+NmrIminePeakId = NewType("NmrIminePeakId", int)
+
+
+def insert_nmr_spectrum(
+    connection: Connection,
+    reaction_id: int,
+    aldehyde_peaks: Iterable[NmrPeak],
+    imine_peaks: Iterable[NmrPeak],
+    *,
+    commit: bool = True,
+) -> tuple[NmrSpectrumId, NmrAldehydePeakId, NmrIminePeakId]:
+    cursor = connection.execute(
+        "INSERT INTO nmr_spectra (reaction_id) VALUES (?)",
+        (reaction_id,),
+    )
+    _nmr_spectrum_id = cursor.lastrowid
+    if isinstance(_nmr_spectrum_id, int):
+        nmr_spectrum_id = NmrSpectrumId(_nmr_spectrum_id)
+    else:
+        msg = "failed to insert nmr spectrum"
+        raise InsertNmrSpectrumError(msg)
+
+    cursor = connection.executemany(
+        f"""
+        INSERT INTO nmr_aldehyde_peaks (nmr_spectrum_id, ppm, amplitude)
+        VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
+        """,  # noqa: S608
+        map(asdict, aldehyde_peaks),
+    )
+    _nmr_aldehyde_peak_id = cursor.lastrowid
+    if isinstance(_nmr_aldehyde_peak_id, int):
+        nmr_aldehyde_peak_id = NmrAldehydePeakId(_nmr_aldehyde_peak_id)
+    else:
+        msg = "failed to insert nmr aldehyde peaks"
+        raise InsertNmrSpectrumError(msg)
+
+    cursor = connection.executemany(
+        f"""
+        INSERT INTO nmr_imine_peaks (nmr_spectrum_id, ppm, amplitude)
+        VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
+        """,  # noqa: S608
+        map(asdict, imine_peaks),
+    )
+    _nmr_imine_peak_id = cursor.lastrowid
+    if isinstance(_nmr_imine_peak_id, int):
+        nmr_imine_peak_id = NmrIminePeakId(_nmr_imine_peak_id)
+    else:
+        msg = "failed to insert nmr imine peaks"
+        raise InsertNmrSpectrumError(msg)
+
+    if commit:
+        connection.commit()
+
+    return (nmr_spectrum_id, nmr_aldehyde_peak_id, nmr_imine_peak_id)
