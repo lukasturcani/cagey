@@ -7,7 +7,11 @@ import polars as pl
 import rdkit.Chem.AllChem as rdkit  # noqa: N813
 from pyopenms import EmpiricalFormula
 
-from cagey._internal.queries import MassSpectrumPeak, Row
+from cagey._internal.queries import (
+    MassSpectrumPeak,
+    MassSpectrumTopologyAssignment,
+    Row,
+)
 
 ADDUCTS = (
     EmpiricalFormula("H1"),
@@ -217,12 +221,6 @@ def _get_cage_mz(
         + adduct.getMonoWeight()
     )
     return cage_weight / charge
-
-
-@dataclass(frozen=True, slots=True)
-class MassSpectrumTopologyAssignment:
-    mass_spectrum_peak_id: int
-    topology: str
 
 
 def get_topologies(

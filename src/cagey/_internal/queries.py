@@ -1,9 +1,9 @@
 import pkgutil
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Generic, TypeVar
+from typing import Generic, NewType, TypeVar
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +30,18 @@ class MassSpectrumPeak:
     intensity: float
 
 
+@dataclass(frozen=True, slots=True)
+class MassSpectrumTopologyAssignment:
+    mass_spectrum_peak_id: int
+    topology: str
+
+
+@dataclass(frozen=True, slots=True)
+class Precursors:
+    di_smiles: str
+    tri_smiles: str
+
+
 T = TypeVar("T")
 
 
@@ -42,6 +54,10 @@ class CreateTablesError(Exception):
     pass
 
 
+class InsertMassSpectrumError(Exception):
+    pass
+
+
 def create_tables(connection: Connection) -> None:
     script = pkgutil.get_data("cagey", "_internal/sql/create_tables.sql")
     if script is not None:
@@ -51,17 +67,27 @@ def create_tables(connection: Connection) -> None:
         raise CreateTablesError(msg)
 
 
+MassSpectrumId = NewType("MassSpectrumId", int)
+MassSpectrumPeakId = NewType("MassSpectrumPeakId", int)
+
+
 def insert_mass_spectrum(
     connection: Connection,
     reaction_id: int,
     peaks: Iterable[MassSpectrumPeak],
     *,
     commit: bool = True,
-) -> None:
+) -> tuple[MassSpectrumId, MassSpectrumPeakId]:
     cursor = connection.execute(
         "INSERT INTO mass_spectra (reaction_id) VALUES (?)",
         (reaction_id,),
     )
+    _mass_spectrum_id = cursor.lastrowid
+    if isinstance(_mass_spectrum_id, int):
+        mass_spectrum_id = MassSpectrumId(_mass_spectrum_id)
+    else:
+        msg = "failed to insert mass spectrum"
+        raise InsertMassSpectrumError(msg)
     cursor.executemany(
         f"""
         INSERT INTO mass_spectrum_peaks (
@@ -75,7 +101,7 @@ def insert_mass_spectrum(
             separation_mz,
             intensity
         ) VALUES (
-            {cursor.lastrowid},
+            {mass_spectrum_id},
             :di_count,
             :tri_count,
             :adduct,
@@ -88,5 +114,78 @@ def insert_mass_spectrum(
         """,  # noqa: S608
         map(asdict, peaks),
     )
+    _mass_spectrum_peak_id = cursor.lastrowid
+    if isinstance(_mass_spectrum_peak_id, int):
+        mass_spectrum_peak_id = MassSpectrumPeakId(_mass_spectrum_peak_id)
+    else:
+        msg = "failed to insert mass spectrum peaks"
+        raise InsertMassSpectrumError(msg)
+
     if commit:
         connection.commit()
+
+    return mass_spectrum_id, mass_spectrum_peak_id
+
+
+def insert_mass_spectrum_topology_assignments(
+    connection: Connection,
+    assignments: Iterable[MassSpectrumTopologyAssignment],
+    *,
+    commit: bool = True,
+) -> None:
+    connection.executemany(
+        """
+        INSERT INTO mass_spectrum_topology_assignments (
+            mass_spectrum_peak_id,
+            topology
+        ) VALUES (
+            :mass_spectrum_peak_id,
+            :topology
+        )
+        """,
+        map(asdict, assignments),
+    )
+    if commit:
+        connection.commit()
+
+
+def reaction_precursors(
+    connection: Connection,
+    reactions: Sequence[ReactionKey],
+) -> Iterator[tuple[ReactionKey, Precursors]]:
+    q = ",".join("(?,?,?)" for _ in range(len(reactions)))
+    for (
+        experiment,
+        plate,
+        formulation_number,
+        di_smiles,
+        tri_smiles,
+    ) in connection.execute(
+        f"""
+        SELECT
+            reactions.experiment,
+            reactions.plate,
+            reactions.formulation_number,
+            di.smiles AS di_smiles,
+            tri.smiles AS tri_smiles
+        FROM
+            reactions
+        LEFT JOIN
+            precursors AS di
+            ON reactions.id = precursors.reaction_id
+        LEFT JOIN
+            precursors AS tri
+            ON reactions.id = precursors.reaction_id
+        WHERE
+            (
+                reactions.experiment,
+                reactions.plate,
+                reactions.formulation_number
+            ) IN ({q})
+        """,
+        reactions,
+    ):
+        yield (
+            ReactionKey(experiment, plate, formulation_number),
+            Precursors(di_smiles, tri_smiles),
+        )

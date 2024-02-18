@@ -8,40 +8,31 @@ from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Any, assert_never
+from typing import assert_never
 
 from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
+from cagey.queries import ReactionKey, Row
 
 
-def main(  # noqa: PLR0913
+def main(
     connection: Connection,
     machine_data: Sequence[Path],
     mzmine: Path,
     progress: Progress,
-    ms_task: TaskID,
-    topology_assignment_task: TaskID,
+    task_id: TaskID,
 ) -> None:
     reaction_keys = tuple(map(ReactionKey.from_ms_path, machine_data))
-    reaction_query = select(Reaction, Di, Tri).where(
-        or_(*map(_get_reaction_query, reaction_keys))
+    reactions = dict(
+        cagey.queries.reaction_precursors(connection, reaction_keys)
     )
-
-    reactions = {
-        ReactionKey.from_reaction(reaction): ReactionData(
-            reaction=_Reaction.from_reaction(reaction),
-            di=_Precursor.from_precursor(di),
-            tri=_Precursor.from_precursor(tri),
-        )
-        for reaction, di, tri in session.exec(reaction_query).all()
-    }
     get_mass_spectrum = partial(_get_mass_spectrum, mzmine)
     with Pool() as pool:
         failures = []
         spectrums = []
-        progress.start_task(ms_task)
+        progress.start_task(task_id)
         for result in progress.track(
             pool.imap_unordered(
                 get_mass_spectrum,
@@ -50,7 +41,7 @@ def main(  # noqa: PLR0913
                     machine_data,
                 ),
             ),
-            task_id=ms_task,
+            task_id=task_id,
         ):
             match result:
                 case MassSpectrum():
@@ -66,69 +57,26 @@ def main(  # noqa: PLR0913
         )
         print(f"failed to process ms spectra: [\n{failures_repr}\n]")
     for spectrum in spectrums:
-        cagey.queries.insert_mass_spectrum(
+        _, max_peak_id = cagey.queries.insert_mass_spectrum(
             connection, spectrum.reaction_id, spectrum.peaks, commit=False
         )
+        cagey.queries.insert_mass_spectrum_topology_assignments(
+            connection,
+            cagey.ms.get_topologies(
+                Row(peak_id, peak)
+                for peak_id, peak in enumerate(
+                    spectrum.peaks,
+                    max_peak_id + 1 - len(spectrum.peaks),
+                )
+            ),
+            commit=False,
+        )
     connection.commit()
-    progress.start_task(topology_assignment_task)
-    for spectrum in progress.track(
-        spectrums,
-        description="Adding topology assignments",
-        task_id=topology_assignment_task,
-    ):
-        session.add_all(cagey.ms.get_topologies(spectrum))
-    session.commit()
-
-
-@dataclass(frozen=True, slots=True)
-class _Reaction:
-    id: int
-    experiment: str
-    plate: int
-    formulation_number: int
-    di_name: str
-    tri_name: str
-
-    @staticmethod
-    def from_reaction(reaction: Reaction) -> "_Reaction":
-        if not isinstance(reaction.id, int):
-            msg = f"reaction id is not an int: {reaction}"
-            raise TypeError(msg)
-        return _Reaction(
-            id=reaction.id,
-            experiment=reaction.experiment,
-            plate=reaction.plate,
-            formulation_number=reaction.formulation_number,
-            di_name=reaction.di_name,
-            tri_name=reaction.tri_name,
-        )
-
-    def to_reaction(self) -> Reaction:
-        return Reaction(
-            id=self.id,
-            experiment=self.experiment,
-            plate=self.plate,
-            formulation_number=self.formulation_number,
-            di_name=self.di_name,
-            tri_name=self.tri_name,
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class _Precursor:
-    name: str
-    smiles: str
-
-    @staticmethod
-    def from_precursor(precursor: Precursor) -> "_Precursor":
-        return _Precursor(name=precursor.name, smiles=precursor.smiles)
-
-    def to_precursor(self) -> Precursor:
-        return Precursor(name=self.name, smiles=self.smiles)
 
 
 @dataclass(frozen=True, slots=True)
 class ReactionData:
+    reaction_id: int
     di_smiles: str
     tri_smiles: str
 
@@ -137,18 +85,8 @@ def _get_mass_spectrum_input(
     reactions: dict[ReactionKey, ReactionData],
     machine_data: Path,
 ) -> tuple[ReactionData, Path]:
-    reaction_key = ReactionKey.from_path(machine_data)
+    reaction_key = ReactionKey.from_ms_path(machine_data)
     return reactions[reaction_key], machine_data
-
-
-def _get_reaction_query(reaction_key: ReactionKey) -> Any:
-    return and_(
-        Reaction.experiment == reaction_key.experiment,
-        Reaction.plate == reaction_key.plate,
-        Reaction.formulation_number == reaction_key.formulation_number,
-        Di.name == Reaction.di_name,
-        Tri.name == Reaction.tri_name,
-    )
 
 
 def _to_mzml(
@@ -213,20 +151,29 @@ class MassSpectrumError:
         return f"{self.path}:\n{error_str}"
 
 
+@dataclass(frozen=True, slots=True)
+class MassSpectrum:
+    reaction_id: int
+    peaks: list[cagey.ms.MassSpectrumPeak]
+
+
 def _get_mass_spectrum(
     mzmine: Path,
     spectrum_data: tuple[ReactionData, Path],
-) -> list[cagey.ms.MassSpectrumPeak] | MassSpectrumError:
+) -> MassSpectrum | MassSpectrumError:
     try:
         reaction_data, machine_data = spectrum_data
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
-        return list(
-            cagey.ms.get_peaks(
-                csv,
-                reaction_data.di_smiles,
-                reaction_data.tri_smiles,
-            )
+        return MassSpectrum(
+            reaction_data.reaction_id,
+            list(
+                cagey.ms.get_peaks(
+                    csv,
+                    reaction_data.di_smiles,
+                    reaction_data.tri_smiles,
+                )
+            ),
         )
     # catch any exception here because the function get called in a
     # process pool
