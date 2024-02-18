@@ -84,12 +84,12 @@ def main(
             start=False,
         )
         _add_reactions(
-            session,
+            connection,
             progress,
             reactions_task,
         )
         add_ms.main(
-            session,
+            connection,
             ms_data,
             mzmine,
             progress,
