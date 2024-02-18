@@ -263,17 +263,28 @@ class NmrPeak:
     ppm: float
     amplitude: float
 
+    def in_range(self, min_ppm: float, max_ppm: float) -> bool:
+        return min_ppm < self.shift < max_ppm
+
+    def has_ppm(self, ppm: float, atol: float = 0.05) -> bool:
+        return self.in_range(ppm - atol, ppm + atol)
+
 
 NmrSpectrumId = NewType("NmrSpectrumId", int)
 NmrAldehydePeakId = NewType("NmrAldehydePeakId", int)
 NmrIminePeakId = NewType("NmrIminePeakId", int)
 
 
+@dataclass(frozen=True, slots=True)
+class NmrSpectrum:
+    aldehyde_peaks: Sequence[NmrPeak]
+    imine_peaks: Sequence[NmrPeak]
+
+
 def insert_nmr_spectrum(
     connection: Connection,
     reaction_id: int,
-    aldehyde_peaks: Iterable[NmrPeak],
-    imine_peaks: Iterable[NmrPeak],
+    spectrum: NmrSpectrum,
     *,
     commit: bool = True,
 ) -> tuple[NmrSpectrumId, NmrAldehydePeakId, NmrIminePeakId]:
@@ -293,7 +304,7 @@ def insert_nmr_spectrum(
         INSERT INTO nmr_aldehyde_peaks (nmr_spectrum_id, ppm, amplitude)
         VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
         """,  # noqa: S608
-        map(asdict, aldehyde_peaks),
+        map(asdict, spectrum.aldehyde_peaks),
     )
     _nmr_aldehyde_peak_id = cursor.lastrowid
     if isinstance(_nmr_aldehyde_peak_id, int):
@@ -307,7 +318,7 @@ def insert_nmr_spectrum(
         INSERT INTO nmr_imine_peaks (nmr_spectrum_id, ppm, amplitude)
         VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
         """,  # noqa: S608
-        map(asdict, imine_peaks),
+        map(asdict, spectrum.imine_peaks),
     )
     _nmr_imine_peak_id = cursor.lastrowid
     if isinstance(_nmr_imine_peak_id, int):

@@ -1,21 +1,15 @@
 from collections.abc import Iterable, Iterator, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from operator import attrgetter
 from pathlib import Path
 
 import nmrglue
 import numpy as np
 
-from cagey._internal.tables import (
-    NmrAldehydePeak,
-    NmrIminePeak,
-    NmrSpectrum,
-    Reaction,
-)
+from cagey._internal.queries import NmrPeak, NmrSpectrum
 
 
-def get_spectrum(spectrum_dir: Path, reaction: Reaction) -> NmrSpectrum:
-    nmr_spectrum = NmrSpectrum(reaction_id=reaction.id)
+def get_spectrum(spectrum_dir: Path) -> NmrSpectrum:
     peaks = tuple(_pick_peaks(spectrum_dir))
 
     reference_peak_ppm = 7.28
@@ -27,71 +21,50 @@ def get_spectrum(spectrum_dir: Path, reaction: Reaction) -> NmrSpectrum:
         possible_reference_peaks,
         key=attrgetter("amplitude"),
     )
-    reference_shift = 7.26 - reference_peak.shift
+    reference_shift = 7.26 - reference_peak.ppm
     chloroform_peaks = [7.26, 7.52, 7.00]
-    nmr_spectrum.aldehyde_peaks.extend(
-        NmrAldehydePeak(
-            ppm=peak.shift,
-            amplitude=peak.amplitude,
-        )
-        for peak in _get_aldehyde_peaks(
-            peaks, reference_shift, chloroform_peaks
-        )
+    return NmrSpectrum(
+        aldehyde_peaks=tuple(
+            _get_aldehyde_peaks(peaks, reference_shift, chloroform_peaks)
+        ),
+        imine_peaks=tuple(
+            _get_imine_peaks(peaks, reference_shift, chloroform_peaks)
+        ),
     )
-    nmr_spectrum.imine_peaks.extend(
-        NmrIminePeak(
-            ppm=peak.shift,
-            amplitude=peak.amplitude,
-        )
-        for peak in _get_imine_peaks(peaks, reference_shift, chloroform_peaks)
-    )
-    return nmr_spectrum
 
 
-@dataclass(frozen=True, slots=True)
-class Peak:
-    shift: float
-    amplitude: float
-
-    def in_range(self, min_ppm: float, max_ppm: float) -> bool:
-        return min_ppm < self.shift < max_ppm
-
-    def has_ppm(self, ppm: float, atol: float = 0.05) -> bool:
-        return self.in_range(ppm - atol, ppm + atol)
-
-
-def _pick_peaks(spectrum_dir: Path) -> Iterator[Peak]:
+def _pick_peaks(spectrum_dir: Path) -> Iterator[NmrPeak]:
     metadata, data = nmrglue.bruker.read_pdata(str(spectrum_dir))
     udic = nmrglue.bruker.guess_udic(metadata, data)
     unit_conversion = nmrglue.fileio.fileiobase.uc_from_udic(udic)
     for peak in nmrglue.peakpick.pick(data, pthres=1e4, nthres=None):
         shift = unit_conversion.ppm(peak["X_AXIS"])
         amplitude = peak["VOL"]
-        yield Peak(shift, amplitude)
+        yield NmrPeak(shift, amplitude)
 
 
 def _shift_peaks(
-    peaks: Iterable[Peak],
+    peaks: Iterable[NmrPeak],
     shift: float,
-) -> Iterator[Peak]:
+) -> Iterator[NmrPeak]:
     for peak in peaks:
-        yield replace(peak, shift=peak.shift + shift)
+        yield replace(peak, ppm=peak.ppm + shift)
 
 
 def _remove_peaks(
-    peaks: Iterable[Peak],
+    peaks: Iterable[NmrPeak],
     to_remove: Sequence[float],
-) -> Iterator[Peak]:
+) -> Iterator[NmrPeak]:
     for peak in peaks:
-        if not np.any(np.isclose(peak.shift, to_remove, atol=0.02)):
+        if not np.any(np.isclose(peak.ppm, to_remove, atol=0.02)):
             yield peak
 
 
 def _get_aldehyde_peaks(
-    peaks: Iterable[Peak],
+    peaks: Iterable[NmrPeak],
     reference_shift: float,
     solvent_peaks: Sequence[float],
-) -> Iterator[Peak]:
+) -> Iterator[NmrPeak]:
     peaks = filter(
         lambda peak: peak.in_range(9.0, 11.0),
         peaks,
@@ -105,10 +78,10 @@ def _get_aldehyde_peaks(
 
 
 def _get_imine_peaks(
-    peaks: Iterable[Peak],
+    peaks: Iterable[NmrPeak],
     reference_shift: float,
     solvent_peaks: Sequence[float],
-) -> Iterator[Peak]:
+) -> Iterator[NmrPeak]:
     peaks = filter(
         lambda peak: peak.in_range(6.5, 9.0),
         peaks,
