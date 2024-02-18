@@ -1,5 +1,7 @@
+import sqlite3
 import subprocess
 from pathlib import Path
+from sqlite3 import Connection
 from typing import Annotated
 
 import typer
@@ -8,8 +10,6 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TaskID, TimeElapsedColumn
 from rich.prompt import Confirm
 from rich.tree import Tree
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
 import cagey
 from cagey._internal.scripts import add_ms, add_nmr, add_turbidity
@@ -52,13 +52,8 @@ def main(
             raise typer.Abort
         database.unlink()
 
-    engine = create_engine(
-        f"sqlite:///{database}",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session, Progress(
+    connection = sqlite3.connect(database)
+    with Progress(
         SpinnerColumn(
             finished_text="[green]:heavy_check_mark:",
         ),
@@ -75,10 +70,6 @@ def main(
         ms_task = progress.add_task(
             "[green]Adding mass spectra",
             total=len(ms_data),
-            start=False,
-        )
-        topology_assignment_task = progress.add_task(
-            "[green]Assigning topologies",
             start=False,
         )
         nmr_data = tuple(data.glob("nmr/**/title"))
@@ -103,7 +94,6 @@ def main(
             mzmine,
             progress,
             ms_task,
-            topology_assignment_task,
         )
         add_nmr.main(
             session,
@@ -193,15 +183,19 @@ def folder_structure() -> Tree:
     return data_tree
 
 
-def _add_reactions(session: Session, progress: Progress, task: TaskID) -> None:
+def _add_reactions(
+    connection: Connection,
+    progress: Progress,
+    task: TaskID,
+) -> None:
     progress.start_task(task)
-    cagey.reactions.add_precursors(session, commit=False)
+    cagey.reactions.add_precursors(connection, commit=False)
     progress.update(task, advance=1)
-    cagey.reactions.add_ab_02_005_data(session, commit=False)
+    cagey.reactions.add_ab_02_005_data(connection, commit=False)
     progress.update(task, advance=1)
-    cagey.reactions.add_ab_02_007_data(session, commit=False)
+    cagey.reactions.add_ab_02_007_data(connection, commit=False)
     progress.update(task, advance=1)
-    cagey.reactions.add_ab_02_009_data(session, commit=False)
+    cagey.reactions.add_ab_02_009_data(connection, commit=False)
     progress.update(task, advance=1)
-    session.commit()
+    connection.commit()
     progress.update(task, advance=1)

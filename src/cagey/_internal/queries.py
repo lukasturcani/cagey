@@ -67,6 +67,63 @@ def create_tables(connection: Connection) -> None:
         raise CreateTablesError(msg)
 
 
+@dataclass(frozen=True, slots=True)
+class Precursor:
+    name: str
+    smiles: str
+
+
+def insert_precursors(
+    connection: Connection,
+    precursors: Iterable[Precursor],
+    *,
+    commit: bool = True,
+) -> None:
+    connection.executemany(
+        "INSERT INTO precursors (name, smiles) VALUES (:name, :smiles)",
+        map(asdict, precursors),
+    )
+    if commit:
+        connection.commit()
+
+
+@dataclass(frozen=True, slots=True)
+class Reaction:
+    experiment: str
+    plate: int
+    formulation_number: int
+    di_name: str
+    tri_name: str
+
+
+def insert_reactions(
+    connection: Connection,
+    reactions: Iterable[Reaction],
+    *,
+    commit: bool = True,
+) -> None:
+    connection.executemany(
+        """
+        INSERT INTO reactions (
+            experiment,
+            plate,
+            formulation_number,
+            di_name,
+            tri_name
+        ) VALUES (
+            :experiment,
+            :plate,
+            :formulation_number,
+            :di_name,
+            :tri_name
+        )
+        """,
+        map(asdict, reactions),
+    )
+    if commit:
+        connection.commit()
+
+
 MassSpectrumId = NewType("MassSpectrumId", int)
 MassSpectrumPeakId = NewType("MassSpectrumPeakId", int)
 
