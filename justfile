@@ -35,7 +35,7 @@ check:
   ( set -x; make -C docs doctest )
 
   echo
-  ( set -x; sqlfluff lint . )
+  ( set -x; sqlfluff lint ./src/cagey/_internal/sql )
 
   test $error = 0
 

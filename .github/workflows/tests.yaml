@@ -67,4 +67,4 @@ jobs:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -e '.[dev]'
-      - run: sqlfluff lint .
+      - run: sqlfluff lint ./src/cagey/_internal/sql

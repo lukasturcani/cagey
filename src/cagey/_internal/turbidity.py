@@ -1,6 +1,6 @@
 import polars as pl
 
-from cagey._internal.tables import TurbidState
+from cagey._internal.queries import TurbidState
 
 
 def get_turbid_state(
