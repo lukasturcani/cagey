@@ -1,6 +1,7 @@
 # ruff: noqa: T201
 
 import argparse
+import json
 import pkgutil
 import subprocess
 import tempfile
@@ -115,13 +116,28 @@ class ReactionData:
     di: Precursor
     tri: Precursor
 
+    def json(self) -> dict[str, Any]:
+        return {
+            "reaction": self.reaction.json(),
+            "di": self.di.json(),
+            "tri": self.tri.json(),
+        }
+
+    @staticmethod
+    def from_json(d: dict[str, Any]) -> "ReactionData":
+        return ReactionData(
+            reaction=Reaction(**json.loads(d["reaction"])),
+            di=Precursor(**json.loads(d["di"])),
+            tri=Precursor(**json.loads(d["tri"])),
+        )
+
 
 def _get_mass_spectrum_input(
     reactions: dict[ReactionKey, ReactionData],
     machine_data: Path,
-) -> tuple[ReactionData, Path]:
+) -> tuple[dict[str, Any], Path]:
     reaction_key = ReactionKey.from_path(machine_data)
-    return reactions[reaction_key], machine_data
+    return reactions[reaction_key].json(), machine_data
 
 
 def _get_reaction_query(reaction_key: ReactionKey) -> Any:
@@ -198,10 +214,11 @@ class MassSpectrumError:
 
 def _get_mass_spectrum(
     mzmine: Path,
-    spectrum_data: tuple[ReactionData, Path],
+    spectrum_data: tuple[dict[str, Any], Path],
 ) -> MassSpectrum | MassSpectrumError:
     try:
-        reaction_data, machine_data = spectrum_data
+        _reaction_data, machine_data = spectrum_data
+        reaction_data = ReactionData.from_json(_reaction_data)
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
         return cagey.ms.get_spectrum(
