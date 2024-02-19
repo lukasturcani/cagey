@@ -1,5 +1,6 @@
 import sqlite3
 import subprocess
+from multiprocessing import Pool
 from pathlib import Path
 from sqlite3 import Connection
 from typing import Annotated
@@ -51,16 +52,20 @@ def main(
         if not overwrite:
             raise typer.Abort
         database.unlink()
-    connection = sqlite3.connect(database)
-    cagey.queries.create_tables(connection)
-    with Progress(
-        SpinnerColumn(
-            finished_text="[green]:heavy_check_mark:",
-        ),
-        *Progress.get_default_columns(),
-        TimeElapsedColumn(),
-        transient=False,
-    ) as progress:
+    with (
+        Progress(
+            SpinnerColumn(
+                finished_text="[green]:heavy_check_mark:",
+            ),
+            *Progress.get_default_columns(),
+            TimeElapsedColumn(),
+            transient=False,
+        ) as progress,
+        Pool() as pool,
+    ):
+        connection = sqlite3.connect(database, check_same_thread=False)
+        cagey.queries.create_tables(connection)
+
         reactions_task = progress.add_task(
             "[green]Adding reactions",
             total=5,
@@ -94,6 +99,7 @@ def main(
             mzmine,
             progress,
             ms_task,
+            pool,
         )
         add_nmr.main(
             connection,
