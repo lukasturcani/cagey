@@ -141,14 +141,25 @@ MassSpectrumPeakId = NewType("MassSpectrumPeakId", int)
 
 def insert_mass_spectrum(
     connection: Connection,
-    reaction_id: int,
+    reaction_key: ReactionKey,
     peaks: Iterable[MassSpectrumPeak],
     *,
     commit: bool = True,
 ) -> tuple[MassSpectrumId, MassSpectrumPeakId]:
     cursor = connection.execute(
-        "INSERT INTO mass_spectra (reaction_id) VALUES (?)",
-        (reaction_id,),
+        """
+        INSERT INTO
+            mass_spectra (reaction_id)
+        SELECT
+            id
+        FROM
+            reactions
+        WHERE
+            experiment = :experiment
+            AND plate = :plate
+            AND formulation_number = :formulation_number
+        """,
+        asdict(reaction_key),
     )
     _mass_spectrum_id = cursor.lastrowid
     if isinstance(_mass_spectrum_id, int):
@@ -290,8 +301,19 @@ def insert_nmr_spectrum(
     commit: bool = True,
 ) -> tuple[NmrSpectrumId, NmrAldehydePeakId, NmrIminePeakId]:
     cursor = connection.execute(
-        "INSERT INTO nmr_spectra (reaction_id) VALUES (?)",
-        (reaction_id,),
+        """
+        INSERT INTO
+            nmr_spectra (reaction_id)
+        SELECT
+            id
+        FROM
+            reactions
+        WHERE
+            experiment = :experiment
+            AND plate = :plate
+            AND formulation_number = :formulation_number
+        """,
+        asdict(reaction_key),
     )
     _nmr_spectrum_id = cursor.lastrowid
     if isinstance(_nmr_spectrum_id, int):
@@ -332,3 +354,17 @@ def insert_nmr_spectrum(
         connection.commit()
 
     return (nmr_spectrum_id, nmr_aldehyde_peak_id, nmr_imine_peak_id)
+
+
+def insert_turbidity(
+    connection: Connection,
+    reaction_key: ReactionKey,
+    dissolved_reference: float,
+    data: dict[str, float],
+    *,
+    commit: bool = True,
+) -> None:
+    cursor = connection.execute()
+
+    if commit:
+        connection.commit()

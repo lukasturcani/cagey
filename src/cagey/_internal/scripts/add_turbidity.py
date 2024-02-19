@@ -1,21 +1,17 @@
 import json
 from collections.abc import Sequence
 from pathlib import Path
+from sqlite3 import Connection
 from typing import TypedDict
 
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.tables import (
-    Reaction,
-    Turbidity,
-    TurbidityDissolvedReference,
-    TurbidityMeasurement,
-)
+from cagey.queries import ReactionKey
 
 
 def main(
-    session: Session,
+    connection: Connection,
     data_files: Sequence[Path],
     progress: Progress,
     task_id: TaskID,
@@ -24,12 +20,16 @@ def main(
     for path in progress.track(data_files, task_id=task_id):
         data = _read_json(path)
         dissolved_reference = data["turbidity_dissolved_reference"]
-        reaction_query = select(Reaction).where(
-            Reaction.experiment == data["experiment"],
-            Reaction.plate == data["plate"],
-            Reaction.formulation_number == data["formulation_number"],
+        cagey.queries.insert_turbidity(
+            connection,
+            ReactionKey(
+                experiment=data["experiment"],
+                plate=data["plate"],
+                formulation_number=data["formulation_number"],
+            ),
+            data.turbidity_dissolved_reference,
+            data.turbidity_data,
         )
-        reaction = session.exec(reaction_query).one()
         session.add(
             Turbidity(
                 reaction_id=reaction.id,
@@ -50,7 +50,7 @@ def main(
             )
             for time, turbidity in data["turbidity_data"].items()
         )
-    session.commit()
+    connection.commit()
 
 
 class TurbidityData(TypedDict):

@@ -16,12 +16,16 @@ CREATE TABLE IF NOT EXISTS reactions (
     FOREIGN KEY (tri_name) REFERENCES precursors (name),
     UNIQUE (experiment, plate, formulation_number)
 );
+CREATE INDEX IF NOT EXISTS reaction_index
+ON reactions (experiment, plate, formulation_number);
 
 CREATE TABLE IF NOT EXISTS nmr_spectra (
     id INTEGER PRIMARY KEY,
     reaction_id INTEGER NOT NULL,
     FOREIGN KEY (reaction_id) REFERENCES reactions (id)
 );
+CREATE INDEX IF NOT EXISTS nmr_spectrum_index
+ON nmr_spectra (reaction_id);
 
 CREATE TABLE IF NOT EXISTS nmr_aldehyde_peaks (
     id INTEGER PRIMARY KEY,
@@ -30,6 +34,8 @@ CREATE TABLE IF NOT EXISTS nmr_aldehyde_peaks (
     amplitude REAL NOT NULL,
     FOREIGN KEY (nmr_spectrum_id) REFERENCES nmr_spectra (id)
 );
+CREATE INDEX IF NOT EXISTS nmr_aldehyde_peak_index
+ON nmr_aldehyde_peaks (nmr_spectrum_id);
 
 CREATE TABLE IF NOT EXISTS nmr_imine_peaks (
     id INTEGER PRIMARY KEY,
@@ -38,12 +44,16 @@ CREATE TABLE IF NOT EXISTS nmr_imine_peaks (
     amplitude REAL NOT NULL,
     FOREIGN KEY (nmr_spectrum_id) REFERENCES nmr_spectra (id)
 );
+CREATE INDEX IF NOT EXISTS nmr_imine_peak_index
+ON nmr_imine_peaks (nmr_spectrum_id);
 
 CREATE TABLE IF NOT EXISTS mass_spectra (
     id INTEGER PRIMARY KEY,
     reaction_id INTEGER NOT NULL,
     FOREIGN KEY (reaction_id) REFERENCES reactions (id)
 );
+CREATE INDEX IF NOT EXISTS mass_spectrum_index
+ON mass_spectra (reaction_id);
 
 CREATE TABLE IF NOT EXISTS mass_specrum_peaks (
     id INTEGER PRIMARY KEY,
@@ -58,6 +68,8 @@ CREATE TABLE IF NOT EXISTS mass_specrum_peaks (
     intensity REAL NOT NULL,
     FOREIGN KEY (mass_spectrum_id) REFERENCES mass_spectra (id)
 );
+CREATE INDEX IF NOT EXISTS mass_spectrum_peak_index
+ON mass_specrum_peaks (mass_spectrum_id);
 
 CREATE TABLE IF NOT EXISTS mass_spectrum_topology_assignments (
     id INTEGER PRIMARY KEY,
@@ -65,6 +77,8 @@ CREATE TABLE IF NOT EXISTS mass_spectrum_topology_assignments (
     topology TEXT NOT NULL,
     FOREIGN KEY (mass_spectrum_peak_id) REFERENCES mass_specrum_peaks (id)
 );
+CREATE INDEX IF NOT EXISTS mass_spectrum_topology_assignment_index
+ON mass_spectrum_topology_assignments (mass_spectrum_peak_id);
 
 CREATE TABLE IF NOT EXISTS turbidity_dissolved_references (
     id INTEGER PRIMARY KEY,
@@ -73,6 +87,8 @@ CREATE TABLE IF NOT EXISTS turbidity_dissolved_references (
     FOREIGN KEY (reaction_id) REFERENCES reactions (id),
     UNIQUE (reaction_id)
 );
+CREATE INDEX IF NOT EXISTS turbidity_dissolved_reference_index
+ON turbidity_dissolved_references (reaction_id);
 
 CREATE TABLE IF NOT EXISTS turbidity_measurements (
     id INTEGER PRIMARY KEY,
@@ -81,6 +97,8 @@ CREATE TABLE IF NOT EXISTS turbidity_measurements (
     turbidity REAL NOT NULL,
     FOREIGN KEY (reaction_id) REFERENCES reactions (id)
 );
+CREATE INDEX IF NOT EXISTS turbidity_measurement_index
+ON turbidity_measurements (reaction_id);
 
 CREATE TABLE IF NOT EXISTS turbidities (
     id INTEGER PRIMARY KEY,
@@ -89,5 +107,7 @@ CREATE TABLE IF NOT EXISTS turbidities (
     FOREIGN KEY (reaction_id) REFERENCES reactions (id),
     UNIQUE (reaction_id)
 );
+CREATE INDEX IF NOT EXISTS turbidity_index
+ON turbidities (reaction_id);
 
 COMMIT;

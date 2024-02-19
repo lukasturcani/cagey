@@ -24,15 +24,22 @@ def main(
     progress: Progress,
     task_id: TaskID,
 ) -> None:
-    get_mass_spectrum = partial(_get_mass_spectrum, mzmine)
-    # just check machine data exists -- easiest
+    reaction_keys = tuple(map(ReactionKey.from_ms_path, machine_data))
+    paths = dict(zip(reaction_keys, machine_data, strict=True))
+    precursors = cagey.queries.reaction_precursors(connection, reaction_keys)
 
     with Pool() as pool:
         failures = []
         spectrums = []
         progress.start_task(task_id)
         for result in progress.track(
-            pool.imap_unordered(get_mass_spectrum, filter(map())),
+            pool.imap_unordered(
+                partial(_get_mass_spectrum, mzmine),
+                (
+                    (reaction_key, precursors, paths[reaction_key])
+                    for reaction_key, precursors in precursors
+                ),
+            ),
             task_id=task_id,
         ):
             match result:
@@ -50,7 +57,7 @@ def main(
         print(f"failed to process ms spectra: [\n{failures_repr}\n]")
     for spectrum in spectrums:
         _, max_peak_id = cagey.queries.insert_mass_spectrum(
-            connection, spectrum.reaction_id, spectrum.peaks, commit=False
+            connection, spectrum.reaction_key, spectrum.peaks, commit=False
         )
         cagey.queries.insert_mass_spectrum_topology_assignments(
             connection,
@@ -132,14 +139,6 @@ class MassSpectrumError:
 class MassSpectrum:
     reaction_key: ReactionKey
     peaks: list[cagey.ms.MassSpectrumPeak]
-
-
-def _get_input(
-    connection: Connection,
-    path: Path,
-) -> tuple[ReactionKey, Precursors, Path]:
-    key = ReactionKey.from_ms_path(path)
-    return (key, cagey.queries.reaction_precursors(connection, key), path)
 
 
 def _get_mass_spectrum(
