@@ -27,28 +27,11 @@ def main(
                 plate=data["plate"],
                 formulation_number=data["formulation_number"],
             ),
-            data.turbidity_dissolved_reference,
-            data.turbidity_data,
-        )
-        session.add(
-            Turbidity(
-                reaction_id=reaction.id,
-                state=cagey.turbidity.get_turbid_state(
-                    data["turbidity_data"], dissolved_reference
-                ),
-            )
-        )
-        session.add(
-            TurbidityDissolvedReference(
-                reaction_id=reaction.id,
-                dissolved_reference=dissolved_reference,
-            )
-        )
-        session.add_all(
-            TurbidityMeasurement(
-                reaction_id=reaction.id, time=time, turbidity=turbidity
-            )
-            for time, turbidity in data["turbidity_data"].items()
+            data["turbidity_dissolved_reference"],
+            data["turbidity_data"],
+            cagey.turbidity.get_turbid_state(
+                data["turbidity_data"], dissolved_reference
+            ),
         )
     connection.commit()
 

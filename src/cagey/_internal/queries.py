@@ -1,6 +1,7 @@
 import pkgutil
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
+from enum import Enum
 from pathlib import Path
 from sqlite3 import Connection
 from typing import Generic, NewType, TypeVar
@@ -356,15 +357,70 @@ def insert_nmr_spectrum(
     return (nmr_spectrum_id, nmr_aldehyde_peak_id, nmr_imine_peak_id)
 
 
-def insert_turbidity(
+class TurbidState(Enum):
+    DISSOLVED = "dissolved"
+    TURBID = "turbid"
+    UNSTABLE = "unstable"
+
+
+def insert_turbidity(  # noqa: PLR0913
     connection: Connection,
     reaction_key: ReactionKey,
     dissolved_reference: float,
     data: dict[str, float],
+    turbidity_state: TurbidState,
     *,
     commit: bool = True,
 ) -> None:
-    cursor = connection.execute()
+    reaction = asdict(reaction_key)
+    connection.execute(
+        """
+        INSERT INTO
+            turbidity_dissolved_references (reaction_id, dissolved_reference)
+        SELECT
+            id, :dissolved_reference
+        FROM
+            reactions
+        WHERE
+            experiment = :experiment
+            AND plate = :plate
+            AND formulation_number = :formulation_number
+        """,
+        reaction | {"dissolved_reference": dissolved_reference},
+    )
+    connection.executemany(
+        """
+        INSERT INTO
+            turbidity_measurements (reaction_id, time, turbidity)
+        SELECT
+            id, :time, :turbidity
+        FROM
+            reactions
+        WHERE
+            experiment = :experiment
+            AND plate = :plate
+            AND formulation_number = :formulation_number
+        """,
+        (
+            reaction | {"time": time, "turbidity": turbidity}
+            for time, turbidity in data.items()
+        ),
+    )
+    connection.execute(
+        """
+            INSERT INTO
+                turbidities (reaction_id, state)
+            SELECT
+                id, :state
+            FROM
+                reactions
+            WHERE
+                experiment = :experiment
+                AND plate = :plate
+                AND formulation_number = :formulation_number
+            """,
+        reaction | {"state": turbidity_state.value},
+    )
 
     if commit:
         connection.commit()
