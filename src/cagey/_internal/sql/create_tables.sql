@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS mass_spectra (
 CREATE INDEX IF NOT EXISTS mass_spectrum_index
 ON mass_spectra (reaction_id);
 
-CREATE TABLE IF NOT EXISTS mass_specrum_peaks (
+CREATE TABLE IF NOT EXISTS mass_spectrum_peaks (
     id INTEGER PRIMARY KEY,
     mass_spectrum_id INTEGER NOT NULL,
     di_count INTEGER NOT NULL,
@@ -69,13 +69,13 @@ CREATE TABLE IF NOT EXISTS mass_specrum_peaks (
     FOREIGN KEY (mass_spectrum_id) REFERENCES mass_spectra (id)
 );
 CREATE INDEX IF NOT EXISTS mass_spectrum_peak_index
-ON mass_specrum_peaks (mass_spectrum_id);
+ON mass_spectrum_peaks (mass_spectrum_id);
 
 CREATE TABLE IF NOT EXISTS mass_spectrum_topology_assignments (
     id INTEGER PRIMARY KEY,
     mass_spectrum_peak_id INTEGER NOT NULL,
     topology TEXT NOT NULL,
-    FOREIGN KEY (mass_spectrum_peak_id) REFERENCES mass_specrum_peaks (id)
+    FOREIGN KEY (mass_spectrum_peak_id) REFERENCES mass_spectrum_peaks (id)
 );
 CREATE INDEX IF NOT EXISTS mass_spectrum_topology_assignment_index
 ON mass_spectrum_topology_assignments (mass_spectrum_peak_id);
