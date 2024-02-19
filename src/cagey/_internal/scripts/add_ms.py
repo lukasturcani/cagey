@@ -57,19 +57,18 @@ def main(  # noqa: PLR0913
         )
         print(f"failed to process ms spectra: [\n{failures_repr}\n]")
     for spectrum in spectrums:
-        _, max_peak_id = cagey.queries.insert_mass_spectrum(
+        cagey.queries.insert_mass_spectrum(
             connection, spectrum.reaction_key, spectrum.peaks, commit=False
         )
-        if max_peak_id is not None:
-            cagey.queries.insert_mass_spectrum_topology_assignments(
-                connection,
-                cagey.ms.get_topologies(
-                    cagey.queries.mass_spectrum_peaks(
-                        connection, spectrum.reaction_key
-                    )
-                ),
-                commit=False,
-            )
+        cagey.queries.insert_mass_spectrum_topology_assignments(
+            connection,
+            cagey.ms.get_topologies(
+                cagey.queries.mass_spectrum_peaks(
+                    connection, spectrum.reaction_key
+                )
+            ),
+            commit=False,
+        )
     connection.commit()
 
 
