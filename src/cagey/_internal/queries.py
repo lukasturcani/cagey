@@ -146,7 +146,7 @@ def insert_mass_spectrum(
     peaks: Sequence[MassSpectrumPeak],
     *,
     commit: bool = True,
-) -> tuple[MassSpectrumId, MassSpectrumPeakId | None]:
+) -> None:
     cursor = connection.execute(
         """
         INSERT INTO
@@ -168,7 +168,7 @@ def insert_mass_spectrum(
     else:
         msg = "failed to insert mass spectrum"
         raise InsertMassSpectrumError(msg)
-    cursor.executemany(
+    connection.executemany(
         f"""
         INSERT INTO mass_spectrum_peaks (
             mass_spectrum_id,
@@ -194,20 +194,9 @@ def insert_mass_spectrum(
         """,  # noqa: S608
         map(asdict, peaks),
     )
-    _mass_spectrum_peak_id = cursor.lastrowid
-    if len(peaks) != 0 and _mass_spectrum_peak_id is None:
-        msg = "failed to insert mass spectrum peaks"
-        raise InsertMassSpectrumError(msg)
-
-    if isinstance(_mass_spectrum_peak_id, int):
-        mass_spectrum_peak_id = MassSpectrumPeakId(_mass_spectrum_peak_id)
-    else:
-        mass_spectrum_peak_id = None
 
     if commit:
         connection.commit()
-
-    return mass_spectrum_id, mass_spectrum_peak_id
 
 
 def insert_mass_spectrum_topology_assignments(
@@ -230,6 +219,62 @@ def insert_mass_spectrum_topology_assignments(
     )
     if commit:
         connection.commit()
+
+
+def mass_spectrum_peaks(
+    connection: Connection,
+    reaction_key: ReactionKey,
+) -> Iterator[Row[MassSpectrumPeak]]:
+    for (
+        id_,
+        di_count,
+        tri_count,
+        adduct,
+        charge,
+        calculated_mz,
+        spectrum_mz,
+        separation_mz,
+        intensity,
+    ) in connection.execute(
+        """
+        SELECT
+            mass_spectrum_peaks.id,
+            mass_spectrum_peaks.di_count,
+            mass_spectrum_peaks.tri_count,
+            mass_spectrum_peaks.adduct,
+            mass_spectrum_peaks.charge,
+            mass_spectrum_peaks.calculated_mz,
+            mass_spectrum_peaks.spectrum_mz,
+            mass_spectrum_peaks.separation_mz,
+            mass_spectrum_peaks.intensity
+        FROM
+            mass_spectrum_peaks
+        JOIN
+            mass_spectra
+            ON mass_spectra.id = mass_spectrum_peaks.mass_spectrum_id
+        JOIN
+            reactions
+            ON mass_spectra.reaction_id = reactions.id
+        WHERE
+            reactions.experiment = :experiment
+            AND reactions.plate = :plate
+            AND reactions.formulation_number = :formulation_number
+        """,
+        asdict(reaction_key),
+    ):
+        yield Row(
+            id_,
+            MassSpectrumPeak(
+                di_count=di_count,
+                tri_count=tri_count,
+                adduct=adduct,
+                charge=charge,
+                calculated_mz=calculated_mz,
+                spectrum_mz=spectrum_mz,
+                separation_mz=separation_mz,
+                intensity=intensity,
+            ),
+        )
 
 
 def reaction_precursors(
@@ -303,7 +348,7 @@ def insert_nmr_spectrum(
     spectrum: NmrSpectrum,
     *,
     commit: bool = True,
-) -> tuple[NmrSpectrumId, NmrAldehydePeakId | None, NmrIminePeakId | None]:
+) -> None:
     cursor = connection.execute(
         """
         INSERT INTO
@@ -326,44 +371,23 @@ def insert_nmr_spectrum(
         msg = "failed to insert nmr spectrum"
         raise InsertNmrSpectrumError(msg)
 
-    cursor = connection.executemany(
+    connection.executemany(
         f"""
         INSERT INTO nmr_aldehyde_peaks (nmr_spectrum_id, ppm, amplitude)
         VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
         """,  # noqa: S608
         map(asdict, spectrum.aldehyde_peaks),
     )
-    _nmr_aldehyde_peak_id = cursor.lastrowid
-    if len(spectrum.aldehyde_peaks) != 0 and _nmr_aldehyde_peak_id is None:
-        msg = "failed to insert nmr aldehyde peaks"
-        raise InsertNmrSpectrumError(msg)
-
-    if isinstance(_nmr_aldehyde_peak_id, int):
-        nmr_aldehyde_peak_id = NmrAldehydePeakId(_nmr_aldehyde_peak_id)
-    else:
-        nmr_aldehyde_peak_id = None
-
-    cursor = connection.executemany(
+    connection.executemany(
         f"""
         INSERT INTO nmr_imine_peaks (nmr_spectrum_id, ppm, amplitude)
         VALUES ({nmr_spectrum_id}, :ppm, :amplitude)
         """,  # noqa: S608
         map(asdict, spectrum.imine_peaks),
     )
-    _nmr_imine_peak_id = cursor.lastrowid
-    if len(spectrum.imine_peaks) != 0 and _nmr_imine_peak_id is None:
-        msg = "failed to insert nmr imine peaks"
-        raise InsertNmrSpectrumError(msg)
-
-    if isinstance(_nmr_imine_peak_id, int):
-        nmr_imine_peak_id = NmrIminePeakId(_nmr_imine_peak_id)
-    else:
-        nmr_imine_peak_id = None
 
     if commit:
         connection.commit()
-
-    return (nmr_spectrum_id, nmr_aldehyde_peak_id, nmr_imine_peak_id)
 
 
 class TurbidState(Enum):

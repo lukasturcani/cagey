@@ -13,6 +13,7 @@ from cagey._internal.queries import (
     insert_nmr_spectrum,
     insert_precursors,
     insert_turbidity,
+    mass_spectrum_peaks,
     reaction_precursors,
 )
 
@@ -29,5 +30,6 @@ __all__ = [
     "insert_nmr_spectrum",
     "insert_precursors",
     "insert_turbidity",
+    "mass_spectrum_peaks",
     "reaction_precursors",
 ]

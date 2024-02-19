@@ -14,7 +14,7 @@ from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.queries import Precursors, ReactionKey, Row
+from cagey.queries import Precursors, ReactionKey
 
 
 def main(  # noqa: PLR0913
@@ -64,9 +64,8 @@ def main(  # noqa: PLR0913
             cagey.queries.insert_mass_spectrum_topology_assignments(
                 connection,
                 cagey.ms.get_topologies(
-                    Row(peak_id, peak)
-                    for peak_id, peak in enumerate(
-                        spectrum.peaks, max_peak_id + 1 - len(spectrum.peaks)
+                    cagey.queries.mass_spectrum_peaks(
+                        connection, spectrum.reaction_key
                     )
                 ),
                 commit=False,
