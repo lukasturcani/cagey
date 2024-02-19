@@ -1,6 +1,6 @@
 import pkgutil
 from collections.abc import Iterable, Iterator, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, astuple, dataclass
 from enum import Enum
 from pathlib import Path
 from sqlite3 import Connection
@@ -252,10 +252,10 @@ def reaction_precursors(
             reactions
         LEFT JOIN
             precursors AS di
-            ON reactions.id = precursors.reaction_id
+            ON reactions.di_name = di.name
         LEFT JOIN
             precursors AS tri
-            ON reactions.id = precursors.reaction_id
+            ON reactions.tri_name = tri.name
         WHERE
             (
                 reactions.experiment,
@@ -263,7 +263,7 @@ def reaction_precursors(
                 reactions.formulation_number
             ) IN ({q})
         """,
-        reactions,
+        tuple(value for reaction in reactions for value in astuple(reaction)),
     ):
         yield (
             ReactionKey(experiment, plate, formulation_number),
