@@ -177,7 +177,7 @@ def insert_mass_spectrum(
             adduct,
             charge,
             calculated_mz,
-            speectrum_mz,
+            spectrum_mz,
             separation_mz,
             intensity
         ) VALUES (
