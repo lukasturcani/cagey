@@ -96,13 +96,13 @@ def main(
             ms_task,
         )
         add_nmr.main(
-            session,
+            connection,
             nmr_data,
             progress,
             nmr_task,
         )
         add_turbidity.main(
-            session,
+            connection,
             turbidity_data,
             progress,
             turbidity_task,

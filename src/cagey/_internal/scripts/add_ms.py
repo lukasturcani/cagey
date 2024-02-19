@@ -14,7 +14,7 @@ from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.queries import ReactionKey, Row
+from cagey.queries import Precursors, ReactionKey, Row
 
 
 def main(
@@ -24,23 +24,15 @@ def main(
     progress: Progress,
     task_id: TaskID,
 ) -> None:
-    reaction_keys = tuple(map(ReactionKey.from_ms_path, machine_data))
-    reactions = dict(
-        cagey.queries.reaction_precursors(connection, reaction_keys)
-    )
     get_mass_spectrum = partial(_get_mass_spectrum, mzmine)
+    # just check machine data exists -- easiest
+
     with Pool() as pool:
         failures = []
         spectrums = []
         progress.start_task(task_id)
         for result in progress.track(
-            pool.imap_unordered(
-                get_mass_spectrum,
-                map(
-                    partial(_get_mass_spectrum_input, reactions),
-                    machine_data,
-                ),
-            ),
+            pool.imap_unordered(get_mass_spectrum, filter(map())),
             task_id=task_id,
         ):
             match result:
@@ -72,21 +64,6 @@ def main(
             commit=False,
         )
     connection.commit()
-
-
-@dataclass(frozen=True, slots=True)
-class ReactionData:
-    reaction_id: int
-    di_smiles: str
-    tri_smiles: str
-
-
-def _get_mass_spectrum_input(
-    reactions: dict[ReactionKey, ReactionData],
-    machine_data: Path,
-) -> tuple[ReactionData, Path]:
-    reaction_key = ReactionKey.from_ms_path(machine_data)
-    return reactions[reaction_key], machine_data
 
 
 def _to_mzml(
@@ -153,25 +130,33 @@ class MassSpectrumError:
 
 @dataclass(frozen=True, slots=True)
 class MassSpectrum:
-    reaction_id: int
+    reaction_key: ReactionKey
     peaks: list[cagey.ms.MassSpectrumPeak]
+
+
+def _get_input(
+    connection: Connection,
+    path: Path,
+) -> tuple[ReactionKey, Precursors, Path]:
+    key = ReactionKey.from_ms_path(path)
+    return (key, cagey.queries.reaction_precursors(connection, key), path)
 
 
 def _get_mass_spectrum(
     mzmine: Path,
-    spectrum_data: tuple[ReactionData, Path],
+    spectrum_data: tuple[ReactionKey, Precursors, Path],
 ) -> MassSpectrum | MassSpectrumError:
     try:
-        reaction_data, machine_data = spectrum_data
+        reaction_key, precursors, machine_data = spectrum_data
         mzml = _to_mzml(machine_data)
         csv = _mzml_to_csv(mzml, mzmine)
         return MassSpectrum(
-            reaction_data.reaction_id,
+            reaction_key,
             list(
                 cagey.ms.get_peaks(
                     csv,
-                    reaction_data.di_smiles,
-                    reaction_data.tri_smiles,
+                    precursors.di_smiles,
+                    precursors.tri_smiles,
                 )
             ),
         )

@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import TypedDict
 
 from rich.progress import Progress, TaskID
-from sqlmodel import Session, select
 
 import cagey
 from cagey.tables import (

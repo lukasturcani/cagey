@@ -51,6 +51,7 @@ class Precursors:
 T = TypeVar("T")
 
 
+@dataclass(frozen=True, slots=True)
 class Row(Generic[T]):
     id: int
     item: T
@@ -264,7 +265,7 @@ class NmrPeak:
     amplitude: float
 
     def in_range(self, min_ppm: float, max_ppm: float) -> bool:
-        return min_ppm < self.shift < max_ppm
+        return min_ppm < self.ppm < max_ppm
 
     def has_ppm(self, ppm: float, atol: float = 0.05) -> bool:
         return self.in_range(ppm - atol, ppm + atol)
@@ -283,7 +284,7 @@ class NmrSpectrum:
 
 def insert_nmr_spectrum(
     connection: Connection,
-    reaction_id: int,
+    reaction_key: ReactionKey,
     spectrum: NmrSpectrum,
     *,
     commit: bool = True,

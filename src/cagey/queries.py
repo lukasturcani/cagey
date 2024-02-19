@@ -9,6 +9,7 @@ from cagey._internal.queries import (
     Row,
     insert_mass_spectrum,
     insert_mass_spectrum_topology_assignments,
+    insert_nmr_spectrum,
     insert_precursors,
     reaction_precursors,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "Row",
     "insert_mass_spectrum",
     "insert_mass_spectrum_topology_assignments",
+    "insert_nmr_spectrum",
     "insert_precursors",
     "reaction_precursors",
 ]
