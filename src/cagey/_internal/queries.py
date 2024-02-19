@@ -143,10 +143,10 @@ MassSpectrumPeakId = NewType("MassSpectrumPeakId", int)
 def insert_mass_spectrum(
     connection: Connection,
     reaction_key: ReactionKey,
-    peaks: Iterable[MassSpectrumPeak],
+    peaks: Sequence[MassSpectrumPeak],
     *,
     commit: bool = True,
-) -> tuple[MassSpectrumId, MassSpectrumPeakId]:
+) -> tuple[MassSpectrumId, MassSpectrumPeakId | None]:
     cursor = connection.execute(
         """
         INSERT INTO
@@ -195,11 +195,14 @@ def insert_mass_spectrum(
         map(asdict, peaks),
     )
     _mass_spectrum_peak_id = cursor.lastrowid
+    if len(peaks) != 0 and _mass_spectrum_peak_id is None:
+        msg = "failed to insert mass spectrum peaks"
+        raise InsertMassSpectrumError(msg)
+
     if isinstance(_mass_spectrum_peak_id, int):
         mass_spectrum_peak_id = MassSpectrumPeakId(_mass_spectrum_peak_id)
     else:
-        msg = "failed to insert mass spectrum peaks"
-        raise InsertMassSpectrumError(msg)
+        mass_spectrum_peak_id = None
 
     if commit:
         connection.commit()
@@ -300,7 +303,7 @@ def insert_nmr_spectrum(
     spectrum: NmrSpectrum,
     *,
     commit: bool = True,
-) -> tuple[NmrSpectrumId, NmrAldehydePeakId, NmrIminePeakId]:
+) -> tuple[NmrSpectrumId, NmrAldehydePeakId | None, NmrIminePeakId | None]:
     cursor = connection.execute(
         """
         INSERT INTO
@@ -331,11 +334,14 @@ def insert_nmr_spectrum(
         map(asdict, spectrum.aldehyde_peaks),
     )
     _nmr_aldehyde_peak_id = cursor.lastrowid
+    if len(spectrum.aldehyde_peaks) != 0 and _nmr_aldehyde_peak_id is None:
+        msg = "failed to insert nmr aldehyde peaks"
+        raise InsertNmrSpectrumError(msg)
+
     if isinstance(_nmr_aldehyde_peak_id, int):
         nmr_aldehyde_peak_id = NmrAldehydePeakId(_nmr_aldehyde_peak_id)
     else:
-        msg = "failed to insert nmr aldehyde peaks"
-        raise InsertNmrSpectrumError(msg)
+        nmr_aldehyde_peak_id = None
 
     cursor = connection.executemany(
         f"""
@@ -345,11 +351,14 @@ def insert_nmr_spectrum(
         map(asdict, spectrum.imine_peaks),
     )
     _nmr_imine_peak_id = cursor.lastrowid
+    if len(spectrum.imine_peaks) != 0 and _nmr_imine_peak_id is None:
+        msg = "failed to insert nmr imine peaks"
+        raise InsertNmrSpectrumError(msg)
+
     if isinstance(_nmr_imine_peak_id, int):
         nmr_imine_peak_id = NmrIminePeakId(_nmr_imine_peak_id)
     else:
-        msg = "failed to insert nmr imine peaks"
-        raise InsertNmrSpectrumError(msg)
+        nmr_imine_peak_id = None
 
     if commit:
         connection.commit()

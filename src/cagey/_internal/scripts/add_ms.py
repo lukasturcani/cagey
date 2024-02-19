@@ -60,17 +60,17 @@ def main(  # noqa: PLR0913
         _, max_peak_id = cagey.queries.insert_mass_spectrum(
             connection, spectrum.reaction_key, spectrum.peaks, commit=False
         )
-        cagey.queries.insert_mass_spectrum_topology_assignments(
-            connection,
-            cagey.ms.get_topologies(
-                Row(peak_id, peak)
-                for peak_id, peak in enumerate(
-                    spectrum.peaks,
-                    max_peak_id + 1 - len(spectrum.peaks),
-                )
-            ),
-            commit=False,
-        )
+        if max_peak_id is not None:
+            cagey.queries.insert_mass_spectrum_topology_assignments(
+                connection,
+                cagey.ms.get_topologies(
+                    Row(peak_id, peak)
+                    for peak_id, peak in enumerate(
+                        spectrum.peaks, max_peak_id + 1 - len(spectrum.peaks)
+                    )
+                ),
+                commit=False,
+            )
     connection.commit()
 
 
