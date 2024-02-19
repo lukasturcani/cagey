@@ -51,8 +51,8 @@ def main(
         if not overwrite:
             raise typer.Abort
         database.unlink()
-
     connection = sqlite3.connect(database)
+    cagey.queries.create_tables(connection)
     with Progress(
         SpinnerColumn(
             finished_text="[green]:heavy_check_mark:",
