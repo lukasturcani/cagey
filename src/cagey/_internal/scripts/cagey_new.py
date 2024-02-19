@@ -8,7 +8,13 @@ from typing import Annotated
 import typer
 from rich.console import Console, Group
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TaskID, TimeElapsedColumn
+from rich.progress import (
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TimeElapsedColumn,
+)
 from rich.prompt import Confirm
 from rich.tree import Tree
 
@@ -59,6 +65,7 @@ def main(
             ),
             *Progress.get_default_columns(),
             TimeElapsedColumn(),
+            MofNCompleteColumn(),
             transient=False,
         ) as progress,
         Pool() as pool,
