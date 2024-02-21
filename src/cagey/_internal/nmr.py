@@ -6,7 +6,7 @@ from pathlib import Path
 import nmrglue
 import numpy as np
 
-from cagey._internal.queries import NmrPeak, NmrSpectrum
+from cagey._internal.types import NmrPeak, NmrSpectrum
 
 
 def get_spectrum(spectrum_dir: Path) -> NmrSpectrum:

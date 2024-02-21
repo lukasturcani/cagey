@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 import cagey
-from cagey.queries import Precursors, ReactionKey, Row
+from cagey import Precursors, ReactionKey, Row
 
 app = typer.Typer(
     help="Mass spectrum analysis.",

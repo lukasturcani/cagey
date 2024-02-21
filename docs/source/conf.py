@@ -24,9 +24,6 @@ extensions = [
 
 autosummary_imported_members = True
 
-autodoc_default_options = {
-    "exclude-members": "model_fields,model_config",
-}
 autodoc_typehints = "description"
 autodoc_member_order = "groupwise"
 autoclass_content = "class"

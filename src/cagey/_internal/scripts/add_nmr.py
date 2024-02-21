@@ -5,7 +5,7 @@ from sqlite3 import Connection
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.queries import ReactionKey
+from cagey import ReactionKey
 
 
 def main(

@@ -1,61 +1,21 @@
 import pkgutil
 from collections.abc import Iterable, Iterator, Sequence
-from dataclasses import asdict, astuple, dataclass
-from enum import Enum
-from pathlib import Path
+from dataclasses import asdict, astuple
 from sqlite3 import Connection
-from typing import Generic, NewType, TypeVar
 
-
-@dataclass(frozen=True, slots=True)
-class ReactionKey:
-    experiment: str
-    plate: int
-    formulation_number: int
-
-    @staticmethod
-    def from_ms_path(path: Path) -> "ReactionKey":
-        experiment, plate, formulation_number = path.stem.split("_")
-        return ReactionKey(experiment, int(plate), int(formulation_number))
-
-    @staticmethod
-    def from_title_file(title_file: Path) -> "ReactionKey":
-        title = title_file.read_text()
-        experiment, plate, formulation_number = title.split("_")
-        return ReactionKey(experiment, int(plate), int(formulation_number))
-
-
-@dataclass(frozen=True, slots=True)
-class MassSpectrumPeak:
-    di_count: int
-    tri_count: int
-    adduct: str
-    charge: int
-    calculated_mz: float
-    spectrum_mz: float
-    separation_mz: float
-    intensity: float
-
-
-@dataclass(frozen=True, slots=True)
-class MassSpectrumTopologyAssignment:
-    mass_spectrum_peak_id: int
-    topology: str
-
-
-@dataclass(frozen=True, slots=True)
-class Precursors:
-    di_smiles: str
-    tri_smiles: str
-
-
-T = TypeVar("T")
-
-
-@dataclass(frozen=True, slots=True)
-class Row(Generic[T]):
-    id: int
-    item: T
+from cagey._internal.types import (
+    MassSpectrumId,
+    MassSpectrumPeak,
+    MassSpectrumTopologyAssignment,
+    NmrSpectrum,
+    NmrSpectrumId,
+    Precursor,
+    Precursors,
+    Reaction,
+    ReactionKey,
+    Row,
+    TurbidState,
+)
 
 
 class CreateTablesError(Exception):
@@ -79,12 +39,6 @@ def create_tables(connection: Connection) -> None:
         raise CreateTablesError(msg)
 
 
-@dataclass(frozen=True, slots=True)
-class Precursor:
-    name: str
-    smiles: str
-
-
 def insert_precursors(
     connection: Connection,
     precursors: Iterable[Precursor],
@@ -97,15 +51,6 @@ def insert_precursors(
     )
     if commit:
         connection.commit()
-
-
-@dataclass(frozen=True, slots=True)
-class Reaction:
-    experiment: str
-    plate: int
-    formulation_number: int
-    di_name: str
-    tri_name: str
 
 
 def insert_reactions(
@@ -134,10 +79,6 @@ def insert_reactions(
     )
     if commit:
         connection.commit()
-
-
-MassSpectrumId = NewType("MassSpectrumId", int)
-MassSpectrumPeakId = NewType("MassSpectrumPeakId", int)
 
 
 def insert_mass_spectrum(
@@ -319,29 +260,6 @@ def reaction_precursors(
         )
 
 
-@dataclass(frozen=True, slots=True)
-class NmrPeak:
-    ppm: float
-    amplitude: float
-
-    def in_range(self, min_ppm: float, max_ppm: float) -> bool:
-        return min_ppm < self.ppm < max_ppm
-
-    def has_ppm(self, ppm: float, atol: float = 0.05) -> bool:
-        return self.in_range(ppm - atol, ppm + atol)
-
-
-NmrSpectrumId = NewType("NmrSpectrumId", int)
-NmrAldehydePeakId = NewType("NmrAldehydePeakId", int)
-NmrIminePeakId = NewType("NmrIminePeakId", int)
-
-
-@dataclass(frozen=True, slots=True)
-class NmrSpectrum:
-    aldehyde_peaks: Sequence[NmrPeak]
-    imine_peaks: Sequence[NmrPeak]
-
-
 def insert_nmr_spectrum(
     connection: Connection,
     reaction_key: ReactionKey,
@@ -388,12 +306,6 @@ def insert_nmr_spectrum(
 
     if commit:
         connection.commit()
-
-
-class TurbidState(Enum):
-    DISSOLVED = "dissolved"
-    TURBID = "turbid"
-    UNSTABLE = "unstable"
 
 
 def insert_turbidity(  # noqa: PLR0913

@@ -11,7 +11,7 @@ from rich import print
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.queries import Precursors, ReactionKey
+from cagey import MassSpectrumPeak, Precursors, ReactionKey
 
 
 def main(  # noqa: PLR0913
@@ -85,7 +85,7 @@ class MassSpectrumError:
 @dataclass(frozen=True, slots=True)
 class MassSpectrum:
     reaction_key: ReactionKey
-    peaks: list[cagey.ms.MassSpectrumPeak]
+    peaks: list[MassSpectrumPeak]
 
 
 def _get_mass_spectrum(

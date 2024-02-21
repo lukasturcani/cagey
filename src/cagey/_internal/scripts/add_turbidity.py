@@ -7,7 +7,7 @@ from typing import TypedDict
 from rich.progress import Progress, TaskID
 
 import cagey
-from cagey.queries import ReactionKey
+from cagey import ReactionKey
 
 
 def main(
