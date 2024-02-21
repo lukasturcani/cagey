@@ -246,6 +246,82 @@ Viewing aldehyde peaks
   shutil.rmtree(temp_dir)
   os.chdir(intial_dir)
 
+Viewing imine peaks
+-------------------
+
+.. testsetup:: viewing-imine-peaks
+
+  import os
+  import tempfile
+  from pathlib import Path
+
+  intial_dir = Path.cwd()
+  temp_dir = Path(tempfile.mkdtemp()).absolute()
+  cagey_db = Path(os.environ["CAGEY_DB"]).absolute()
+  os.chdir(temp_dir)
+  target = temp_dir / "path" / "to" / "cagey.db"
+  target.parent.mkdir(parents=True, exist_ok=True)
+
+  target.symlink_to(cagey_db)
+
+.. testcode:: viewing-imine-peaks
+
+  import sqlite3
+  import polars as pl
+
+  df = pl.read_database(
+      """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          nmr_imine_peaks.ppm,
+          nmr_imine_peaks.amplitude
+      FROM
+          nmr_imine_peaks
+      LEFT JOIN
+          nmr_spectra
+          ON nmr_imine_peaks.nmr_spectrum_id = nmr_spectra.id
+      LEFT JOIN
+          reactions
+          ON nmr_spectra.reaction_id = reactions.id
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          nmr_imine_peaks.ppm
+      """,
+      sqlite3.connect("path/to/cagey.db"),
+  )
+  print(df)
+
+.. testoutput:: viewing-imine-peaks
+
+  shape: (8_897, 5)
+  ┌────────────┬───────┬────────────────────┬──────────┬───────────────┐
+  │ experiment ┆ plate ┆ formulation_number ┆ ppm      ┆ amplitude     │
+  │ ---        ┆ ---   ┆ ---                ┆ ---      ┆ ---           │
+  │ str        ┆ i64   ┆ i64                ┆ f64      ┆ f64           │
+  ╞════════════╪═══════╪════════════════════╪══════════╪═══════════════╡
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ 7.19154  ┆ 182851.445312 │
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ 7.199486 ┆ 10129.6875    │
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ 7.200708 ┆ 20981.03125   │
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ 7.202542 ┆ 10030.398438  │
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ 7.351688 ┆ 78380.953125  │
+  │ …          ┆ …     ┆ …                  ┆ …        ┆ …             │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ 7.705604 ┆ 185844.953125 │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ 7.726386 ┆ 191285.3125   │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ 7.910985 ┆ 1.6976e6      │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ 7.984335 ┆ 46808.234375  │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ 8.491675 ┆ 409445.09375  │
+  └────────────┴───────┴────────────────────┴──────────┴───────────────┘
+
+.. testcleanup:: viewing-imine-peaks
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
+
 
 Adding new precursors and reactions
 -----------------------------------
