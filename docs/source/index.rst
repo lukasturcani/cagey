@@ -50,27 +50,11 @@ Viewing precursors
 
   target.symlink_to(cagey_db)
 
-.. testcode:: viewing-precursors
+.. doctest:: viewing-precursors
 
-  import sqlite3
-  import polars as pl
-
-  df = pl.read_database(
-      """
-      SELECT
-          precursors.name,
-          precursors.smiles
-      FROM
-          precursors
-      ORDER BY
-          precursors.name
-      """,
-      sqlite3.connect("path/to/cagey.db"),
-  )
-  print(df)
-
-.. testoutput:: viewing-precursors
-
+  >>> import sqlite3
+  >>> import cagey
+  >>> cagey.queries.precursors_df(sqlite3.connect("path/to/cagey.db"))
   shape: (55, 2)
   ┌──────┬───────────────────────────────────┐
   │ name ┆ smiles                            │
@@ -117,40 +101,11 @@ Viewing reactions
 
   target.symlink_to(cagey_db)
 
-.. testcode:: viewing-reactions
+.. doctest:: viewing-reactions
 
-  import sqlite3
-  import polars as pl
-
-  df = pl.read_database(
-      """
-      SELECT
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          di.name AS di_name,
-          tri.name AS tri_name
-      FROM
-          reactions
-      LEFT JOIN
-          precursors AS di
-          ON reactions.di_name = di.name
-      LEFT JOIN
-          precursors AS tri
-          ON reactions.tri_name = tri.name
-      ORDER BY
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          di.name,
-          tri.name
-      """,
-      sqlite3.connect("path/to/cagey.db"),
-  )
-  print(df)
-
-.. testoutput:: viewing-reactions
-
+  >>> import sqlite3
+  >>> import cagey
+  >>> cagey.queries.reactions_df(sqlite3.connect("path/to/cagey.db"))
   shape: (450, 5)
   ┌────────────┬───────┬────────────────────┬─────────┬──────────┐
   │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name │
@@ -197,47 +152,11 @@ Viewing aldehyde peaks
 
   target.symlink_to(cagey_db)
 
-.. testcode:: viewing-aldehyde-peaks
+.. doctest:: viewing-aldehyde-peaks
 
-  import sqlite3
-  import polars as pl
-
-  df = pl.read_database(
-      """
-      SELECT
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          di.name AS di_name,
-          tri.name AS tri_name,
-          nmr_aldehyde_peaks.ppm,
-          nmr_aldehyde_peaks.amplitude
-      FROM
-          nmr_aldehyde_peaks
-      LEFT JOIN
-          nmr_spectra
-          ON nmr_aldehyde_peaks.nmr_spectrum_id = nmr_spectra.id
-      LEFT JOIN
-          reactions
-          ON nmr_spectra.reaction_id = reactions.id
-      LEFT JOIN
-          precursors AS di
-          ON reactions.di_name = di.name
-      LEFT JOIN
-          precursors AS tri
-          ON reactions.tri_name = tri.name
-      ORDER BY
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          nmr_aldehyde_peaks.ppm
-      """,
-      sqlite3.connect("/home/lukas/data/cagey/new-cagey.db"),
-  )
-  print(df)
-
-.. testoutput:: viewing-aldehyde-peaks
-
+  >>> import sqlite3
+  >>> import cagey
+  >>> cagey.queries.aldehyde_peaks_df(sqlite3.connect("path/to/cagey.db"))
   shape: (751, 7)
   ┌────────────┬───────┬────────────────────┬─────────┬──────────┬───────────┬───────────────┐
   │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name ┆ ppm       ┆ amplitude     │

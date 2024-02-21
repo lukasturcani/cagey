@@ -4,6 +4,7 @@ from cagey._internal.queries import (
     CreateTablesError,
     InsertMassSpectrumError,
     InsertNmrSpectrumError,
+    aldehyde_peaks_df,
     create_tables,
     insert_mass_spectrum,
     insert_mass_spectrum_topology_assignments,
@@ -12,13 +13,16 @@ from cagey._internal.queries import (
     insert_reactions,
     insert_turbidity,
     mass_spectrum_peaks,
+    precursors_df,
     reaction_precursors,
+    reactions_df,
 )
 
 __all__ = [
     "CreateTablesError",
     "InsertMassSpectrumError",
     "InsertNmrSpectrumError",
+    "aldehyde_peaks_df",
     "create_tables",
     "insert_mass_spectrum",
     "insert_mass_spectrum_topology_assignments",
@@ -27,5 +31,7 @@ __all__ = [
     "insert_reactions",
     "insert_turbidity",
     "mass_spectrum_peaks",
+    "precursors_df",
     "reaction_precursors",
+    "reactions_df",
 ]

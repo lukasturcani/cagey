@@ -3,6 +3,8 @@ from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, astuple
 from sqlite3 import Connection
 
+import polars as pl
+
 from cagey._internal.types import (
     MassSpectrumId,
     MassSpectrumPeak,
@@ -37,6 +39,108 @@ def create_tables(connection: Connection) -> None:
     else:
         msg = "failed to load create_tables.sql"
         raise CreateTablesError(msg)
+
+
+def precursors_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of precursors.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of precursors.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          precursors.name,
+          precursors.smiles
+      FROM
+          precursors
+      ORDER BY
+          precursors.name
+      """,
+        connection,
+    )
+
+
+def reactions_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of reactions.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of reactions.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name
+      FROM
+          reactions
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name,
+          tri.name
+      """,
+        connection,
+    )
+
+
+def aldehyde_peaks_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of aldehyde peaks.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of aldehyde peaks.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          nmr_aldehyde_peaks.ppm,
+          nmr_aldehyde_peaks.amplitude
+      FROM
+          nmr_aldehyde_peaks
+      LEFT JOIN
+          nmr_spectra
+          ON nmr_aldehyde_peaks.nmr_spectrum_id = nmr_spectra.id
+      LEFT JOIN
+          reactions
+          ON nmr_spectra.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          nmr_aldehyde_peaks.ppm
+      """,
+        connection,
+    )
 
 
 def insert_precursors(
