@@ -37,6 +37,9 @@ Viewing precursors
   import os
   import tempfile
   from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -101,6 +104,9 @@ Viewing reactions
   import os
   import tempfile
   from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -178,6 +184,9 @@ Viewing aldehyde peaks
   import os
   import tempfile
   from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -262,6 +271,9 @@ Viewing imine peaks
   import os
   import tempfile
   from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -347,6 +359,9 @@ Viewing mass spectrum peaks
   import os
   import tempfile
   from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -357,8 +372,6 @@ Viewing mass spectrum peaks
 
   target.symlink_to(cagey_db)
 
-  import polars as pl
-  pl.Config.set_tbl_width_chars(170)
 
 .. testcode:: viewing-mass-spectrum-peaks
 
@@ -443,6 +456,9 @@ Adding new precursors and reactions
   import tempfile
   from pathlib import Path
   import shutil
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
