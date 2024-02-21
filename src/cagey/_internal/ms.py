@@ -103,6 +103,32 @@ def get_peaks(  # noqa: PLR0913
     min_peak_height: float = 1e4,
     max_between_peak_height: float = 0.7,
 ) -> Iterator[MassSpectrumPeak]:
+    """Yield the peaks of a mass spectrum.
+
+    Parameters:
+        path: The path to the mass spectrum csv file.
+        di_smiles: The smiles string of the di-topic precursor.
+        tri_smiles: The smiles string of the tri-topic precursor.
+        calculated_peak_tolerance:
+            The delta to the predicted cage m/z in which the cage
+            peaks are found.
+        separation_peak_tolerance:
+            The delta to the predicted separation peak m/z
+            in which the separation peaks are found.
+        max_ppm_error:
+            The maximum allowed error in ppm between the calculated and
+            observed cage m/z.
+        max_separation:
+            The maximum allowed error in the separation between the cage
+            and separation peaks.
+        min_peak_height: The minimum peak height allowed.
+        max_between_peak_height:
+            The maximum allowed height for peaks between the cage and
+            separation peaks.
+
+    Yields:
+        A mass spectrum peak.
+    """
     peaks = (
         pl.scan_csv(path).filter(pl.col("height") > min_peak_height).collect()
     )
