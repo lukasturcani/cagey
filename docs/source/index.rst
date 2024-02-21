@@ -50,11 +50,19 @@ Viewing precursors
 
   target.symlink_to(cagey_db)
 
-.. doctest:: viewing-precursors
+.. testcode:: viewing-precursors
 
-  >>> import sqlite3
-  >>> import cagey
-  >>> cagey.queries.precursors_df(sqlite3.connect("path/to/cagey.db"))
+  import sqlite3
+  import cagey
+  df  = cagey.queries.precursors_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-precursors
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-precursors
+
   shape: (55, 2)
   ┌──────┬───────────────────────────────────┐
   │ name ┆ smiles                            │
@@ -101,11 +109,19 @@ Viewing reactions
 
   target.symlink_to(cagey_db)
 
-.. doctest:: viewing-reactions
+.. testcode:: viewing-reactions
 
-  >>> import sqlite3
-  >>> import cagey
-  >>> cagey.queries.reactions_df(sqlite3.connect("path/to/cagey.db"))
+  import sqlite3
+  import cagey
+  df = cagey.queries.reactions_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-reactions
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-reactions
+
   shape: (450, 5)
   ┌────────────┬───────┬────────────────────┬─────────┬──────────┐
   │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name │
@@ -152,11 +168,19 @@ Viewing aldehyde peaks
 
   target.symlink_to(cagey_db)
 
-.. doctest:: viewing-aldehyde-peaks
+.. testcode:: viewing-aldehyde-peaks
 
-  >>> import sqlite3
-  >>> import cagey
-  >>> cagey.queries.aldehyde_peaks_df(sqlite3.connect("path/to/cagey.db"))
+  import sqlite3
+  import cagey
+  df = cagey.queries.aldehyde_peaks_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-aldehyde-peaks
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-aldehyde-peaks
+
   shape: (751, 7)
   ┌────────────┬───────┬────────────────────┬─────────┬──────────┬───────────┬───────────────┐
   │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name ┆ ppm       ┆ amplitude     │
