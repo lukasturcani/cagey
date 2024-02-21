@@ -119,17 +119,17 @@ def _get_table(  # noqa: PLR0913
     max_separation: float,
     min_peak_height: float,
 ) -> Table:
-    table = Table(title="Mass Spectrum Peaks")
-    table.add_column("id")
-    table.add_column("di_count")
-    table.add_column("tri_count")
-    table.add_column("adduct")
-    table.add_column("charge")
-    table.add_column("calculated_mz")
-    table.add_column("spectrum_mz")
-    table.add_column("separation_mz")
-    table.add_column("intensity")
-    table.add_column("topology")
+    table = Table(title="Mass Spectrum Peaks", header_style="bold magenta")
+    table.add_column("id", style="cyan")
+    table.add_column("tri_count", style="blue")
+    table.add_column("di_count", style="blue")
+    table.add_column("adduct", style="green")
+    table.add_column("charge", style="blue")
+    table.add_column("calculated_mz", style="blue")
+    table.add_column("spectrum_mz", style="blue")
+    table.add_column("separation_mz", style="blue")
+    table.add_column("intensity", style="blue")
+    table.add_column("topology", style="green")
 
     rows = tuple(
         Row(id=id_, item=peak)
@@ -153,8 +153,8 @@ def _get_table(  # noqa: PLR0913
     for row in rows:
         table.add_row(
             str(row.id),
-            str(row.item.di_count),
             str(row.item.tri_count),
+            str(row.item.di_count),
             str(row.item.adduct),
             str(row.item.charge),
             str(row.item.calculated_mz),
