@@ -63,6 +63,13 @@ the best way to learn about them is to use it interactively, starting with:
 Working with the database
 =========================
 
+Once you've used ``cagey`` to create a database, you can use the ``cagey.queries`` module
+to extract data from it in your Python scripts. The following sections will show you how to do this.
+
+Note that the examples in this section are pre-written SQL queries. If you know a bit of
+SQL, you can write your own queries to extract the data you need.
+If you're looking to learn SQL, I recommend https://www.codecademy.com/learn/learn-sql,
+it takes about 5 hours to complete.
 
 Viewing precursors
 ------------------
