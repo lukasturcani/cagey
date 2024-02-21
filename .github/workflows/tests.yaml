@@ -57,7 +57,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -e '.[dev]'
-      - run: make -C docs doctest
+      - run: CAGEY_DB="../data/cagey.db" make -C docs doctest
   sqlfluff:
     runs-on: ubuntu-22.04
     steps:
