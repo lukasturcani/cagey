@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+=================================
 Welcome to cagey's documentation!
 =================================
 
@@ -13,12 +14,24 @@ Welcome to cagey's documentation!
 
   Modules <modules>
 
+
 First and foremost ``cagey`` is a command line tool for creating and managing a cage
 database. With ``cagey`` you will extract a a range of experimental and computational
 data in a variety of formats and place it into a single file. You can then use this file
-as input for your scripts which perform data analysis.
+as input for your scripts which perform data analysis. You can install cagey with
+
+.. code-block:: bash
+
+  pip install cagey
 
 
+Working with the database
+=========================
+
+
+
+
+==================
 Indices and tables
 ==================
 

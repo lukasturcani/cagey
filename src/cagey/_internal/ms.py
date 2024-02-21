@@ -255,6 +255,14 @@ def _get_cage_mz(
 def get_topologies(
     peaks: Iterable[Row[MassSpectrumPeak]],
 ) -> Iterator[MassSpectrumTopologyAssignment]:
+    """Yield the topology assignments for the peaks.
+
+    Parameters:
+        peaks: The peaks to assign topologies to.
+
+    Yields:
+        A topology assignment.
+    """
     valid_peaks = tuple(
         peak
         for peak in peaks
@@ -319,6 +327,14 @@ def get_topologies(
 def machine_data_to_mzml(
     machine_data: Path,
 ) -> Path:
+    """Convert the machine data to mzML.
+
+    Parameters:
+        machine_data: The path to the machine data.
+
+    Returns:
+        The path to the mzML file.
+    """
     subprocess.run(
         [  # noqa: S603, S607
             "docker",
@@ -342,6 +358,15 @@ def machine_data_to_mzml(
 
 
 def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
+    """Convert the mzML file to a csv file.
+
+    Parameters:
+        mzml: The path to the mzML file.
+        mzmine: The path to the MZmine version 3.4.
+
+    Returns:
+        The path to the csv file.
+    """
     template = pkgutil.get_data(
         "cagey", "_internal/scripts/mzmine_input_template.xml"
     )

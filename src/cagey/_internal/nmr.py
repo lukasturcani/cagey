@@ -10,6 +10,14 @@ from cagey._internal.types import NmrPeak, NmrSpectrum
 
 
 def get_spectrum(spectrum_dir: Path) -> NmrSpectrum:
+    """Get NMR spectrum from the machine data directory.
+
+    Parameters:
+        spectrum_dir: Path to the directory containing the spectrum data.
+
+    Returns:
+        The NMR spectrum.
+    """
     peaks = tuple(_pick_peaks(spectrum_dir))
 
     reference_peak_ppm = 7.28
