@@ -1,6 +1,9 @@
 """Database queries."""
 
 from cagey._internal.queries import (
+    CreateTablesError,
+    InsertMassSpectrumError,
+    InsertNmrSpectrumError,
     create_tables,
     insert_mass_spectrum,
     insert_mass_spectrum_topology_assignments,
@@ -12,6 +15,9 @@ from cagey._internal.queries import (
 )
 
 __all__ = [
+    "CreateTablesError",
+    "InsertMassSpectrumError",
+    "InsertNmrSpectrumError",
     "create_tables",
     "insert_mass_spectrum",
     "insert_mass_spectrum_topology_assignments",

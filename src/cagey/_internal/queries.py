@@ -19,15 +19,15 @@ from cagey._internal.types import (
 
 
 class CreateTablesError(Exception):
-    pass
+    """Raised when the tables cannot be created."""
 
 
 class InsertMassSpectrumError(Exception):
-    pass
+    """Raised when a mass spectrum cannot be inserted."""
 
 
 class InsertNmrSpectrumError(Exception):
-    pass
+    """Raised when an NMR spectrum cannot be inserted."""
 
 
 def create_tables(connection: Connection) -> None:
