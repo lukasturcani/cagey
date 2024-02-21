@@ -328,6 +328,67 @@ Viewing mass spectrum peaks
   shutil.rmtree(temp_dir)
   os.chdir(intial_dir)
 
+Viewing mass spectrum topology assignments
+------------------------------------------
+
+.. testsetup:: viewing-mass-spectrum-topology-assignments
+
+  import os
+  import tempfile
+  from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(180)
+  pl.Config.set_tbl_cols(-1)
+
+  intial_dir = Path.cwd()
+  temp_dir = Path(tempfile.mkdtemp()).absolute()
+  cagey_db = Path(os.environ["CAGEY_DB"]).absolute()
+  os.chdir(temp_dir)
+  target = temp_dir / "path" / "to" / "cagey.db"
+  target.parent.mkdir(parents=True, exist_ok=True)
+
+  target.symlink_to(cagey_db)
+
+.. testcode:: viewing-mass-spectrum-topology-assignments
+
+    import sqlite3
+    import cagey
+    df = cagey.queries.mass_spectrum_topology_assignments_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-mass-spectrum-topology-assignments
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-mass-spectrum-topology-assignments
+
+  shape: (541, 14)
+  ┌────────────┬───────┬────────────────────┬─────────┬──────────┬───────────┬──────────┬────────┬────────┬───────────────┬─────────────┬───────────────┬───────────┬──────────┐
+  │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name ┆ tri_count ┆ di_count ┆ adduct ┆ charge ┆ calculated_mz ┆ spectrum_mz ┆ separation_mz ┆ intensity ┆ topology │
+  │ ---        ┆ ---   ┆ ---                ┆ ---     ┆ ---      ┆ ---       ┆ ---      ┆ ---    ┆ ---    ┆ ---           ┆ ---         ┆ ---           ┆ ---       ┆ ---      │
+  │ str        ┆ i64   ┆ i64                ┆ str     ┆ str      ┆ i64       ┆ i64      ┆ str    ┆ i64    ┆ f64           ┆ f64         ┆ f64           ┆ f64       ┆ str      │
+  ╞════════════╪═══════╪════════════════════╪═════════╪══════════╪═══════════╪══════════╪════════╪════════╪═══════════════╪═════════════╪═══════════════╪═══════════╪══════════╡
+  │ AB-02-005  ┆ 1     ┆ 9                  ┆ Di1     ┆ TriB     ┆ 2         ┆ 3        ┆ H2     ┆ 2      ┆ 355.204848    ┆ 355.20633   ┆ 355.70863     ┆ 4.345e6   ┆ 2+3      │
+  │ AB-02-005  ┆ 1     ┆ 9                  ┆ Di1     ┆ TriB     ┆ 2         ┆ 3        ┆ Na1    ┆ 1      ┆ 731.383815    ┆ 731.38679   ┆ 732.39014     ┆ 5.375e6   ┆ 2+3      │
+  │ AB-02-005  ┆ 1     ┆ 9                  ┆ Di1     ┆ TriB     ┆ 2         ┆ 3        ┆ K1     ┆ 1      ┆ 747.357752    ┆ 747.36147   ┆ 748.36423     ┆ 702500.0  ┆ 2+3      │
+  │ AB-02-005  ┆ 1     ┆ 10                 ┆ Di2     ┆ TriB     ┆ 2         ┆ 3        ┆ H2     ┆ 2      ┆ 463.291121    ┆ 463.29423   ┆ 463.79488     ┆ 1.061e7   ┆ 2+3      │
+  │ AB-02-005  ┆ 1     ┆ 10                 ┆ Di2     ┆ TriB     ┆ 2         ┆ 3        ┆ H1     ┆ 1      ┆ 925.574416    ┆ 925.5803    ┆ 926.58282     ┆ 1.653e7   ┆ 2+3      │
+  │ …          ┆ …     ┆ …                  ┆ …       ┆ …        ┆ …         ┆ …        ┆ …      ┆ …      ┆ …             ┆ …           ┆ …             ┆ …         ┆ …        │
+  │ AB-02-009  ┆ 1     ┆ 46                 ┆ Di30    ┆ TriQ     ┆ 2         ┆ 3        ┆ H2     ┆ 2      ┆ 571.291121    ┆ 571.29316   ┆ 571.79578     ┆ 2.944e6   ┆ 2+3      │
+  │ AB-02-009  ┆ 1     ┆ 46                 ┆ Di30    ┆ TriQ     ┆ 2         ┆ 3        ┆ H1     ┆ 1      ┆ 1141.574416   ┆ 1141.57561  ┆ 1142.57955    ┆ 2.704e6   ┆ 2+3      │
+  │ AB-02-009  ┆ 1     ┆ 46                 ┆ Di30    ┆ TriQ     ┆ 2         ┆ 3        ┆ Na1    ┆ 1      ┆ 1163.556361   ┆ 1163.55862  ┆ 1164.55963    ┆ 209200.0  ┆ 2+3      │
+  │ AB-02-009  ┆ 1     ┆ 46                 ┆ Di30    ┆ TriQ     ┆ 4         ┆ 6        ┆ Na2    ┆ 2      ┆ 1163.556361   ┆ 1163.55862  ┆ 1164.0711     ┆ 209200.0  ┆ 4+6      │
+  │ AB-02-009  ┆ 2     ┆ 18                 ┆ Di34    ┆ TriN     ┆ 2         ┆ 3        ┆ H1     ┆ 1      ┆ 1015.542721   ┆ 1015.54603  ┆ 1016.54919    ┆ 156600.0  ┆ 2+3      │
+  └────────────┴───────┴────────────────────┴─────────┴──────────┴───────────┴──────────┴────────┴────────┴───────────────┴─────────────┴───────────────┴───────────┴──────────┘
+
+
+.. testcleanup:: viewing-mass-spectrum-topology-assignments
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
+
 
 Adding new precursors and reactions
 -----------------------------------

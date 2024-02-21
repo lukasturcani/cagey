@@ -235,6 +235,62 @@ def mass_spectrum_peaks_df(connection: Connection) -> pl.DataFrame:
     )
 
 
+def mass_spectrum_topology_assignments_df(
+    connection: Connection,
+) -> pl.DataFrame:
+    """Return a DataFrame of mass spectrum topology assignments.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of mass spectrum topology assignments.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          mass_spectrum_peaks.tri_count,
+          mass_spectrum_peaks.di_count,
+          mass_spectrum_peaks.adduct,
+          mass_spectrum_peaks.charge,
+          mass_spectrum_peaks.calculated_mz,
+          mass_spectrum_peaks.spectrum_mz,
+          mass_spectrum_peaks.separation_mz,
+          mass_spectrum_peaks.intensity,
+          mass_spectrum_topology_assignments.topology
+      FROM
+            mass_spectrum_topology_assignments
+      LEFT JOIN
+          mass_spectrum_peaks
+          ON mass_spectrum_peaks.id =
+            mass_spectrum_topology_assignments.mass_spectrum_peak_id
+      LEFT JOIN
+          mass_spectra
+          ON mass_spectrum_peaks.mass_spectrum_id = mass_spectra.id
+      LEFT JOIN
+          reactions
+          ON mass_spectra.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          mass_spectrum_peaks.spectrum_mz
+        """,
+        connection,
+    )
+
+
 def insert_precursors(
     connection: Connection,
     precursors: Iterable[Precursor],
