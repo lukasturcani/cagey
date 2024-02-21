@@ -143,6 +143,98 @@ def aldehyde_peaks_df(connection: Connection) -> pl.DataFrame:
     )
 
 
+def imine_peaks_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of imine peaks.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of imine peaks.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          nmr_imine_peaks.ppm,
+          nmr_imine_peaks.amplitude
+      FROM
+          nmr_imine_peaks
+      LEFT JOIN
+          nmr_spectra
+          ON nmr_imine_peaks.nmr_spectrum_id = nmr_spectra.id
+      LEFT JOIN
+          reactions
+          ON nmr_spectra.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          nmr_imine_peaks.ppm
+      """,
+        connection,
+    )
+
+
+def mass_spectrum_peaks_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of mass spectrum peaks.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of mass spectrum peaks.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          mass_spectrum_peaks.tri_count,
+          mass_spectrum_peaks.di_count,
+          mass_spectrum_peaks.adduct,
+          mass_spectrum_peaks.charge,
+          mass_spectrum_peaks.calculated_mz,
+          mass_spectrum_peaks.spectrum_mz,
+          mass_spectrum_peaks.separation_mz,
+          mass_spectrum_peaks.intensity
+      FROM
+          mass_spectrum_peaks
+      LEFT JOIN
+          mass_spectra
+          ON mass_spectrum_peaks.mass_spectrum_id = mass_spectra.id
+      LEFT JOIN
+          reactions
+          ON mass_spectra.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          mass_spectrum_peaks.spectrum_mz
+      """,
+        connection,
+    )
+
+
 def insert_precursors(
     connection: Connection,
     precursors: Iterable[Precursor],

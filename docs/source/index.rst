@@ -230,40 +230,13 @@ Viewing imine peaks
 .. testcode:: viewing-imine-peaks
 
   import sqlite3
-  import polars as pl
+  import cagey
+  df = cagey.queries.imine_peaks_df(sqlite3.connect("path/to/cagey.db"))
 
-  df = pl.read_database(
-      """
-      SELECT
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          di.name AS di_name,
-          tri.name AS tri_name,
-          nmr_imine_peaks.ppm,
-          nmr_imine_peaks.amplitude
-      FROM
-          nmr_imine_peaks
-      LEFT JOIN
-          nmr_spectra
-          ON nmr_imine_peaks.nmr_spectrum_id = nmr_spectra.id
-      LEFT JOIN
-          reactions
-          ON nmr_spectra.reaction_id = reactions.id
-      LEFT JOIN
-          precursors AS di
-          ON reactions.di_name = di.name
-      LEFT JOIN
-          precursors AS tri
-          ON reactions.tri_name = tri.name
-      ORDER BY
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          nmr_imine_peaks.ppm
-      """,
-      sqlite3.connect("/home/lukas/data/cagey/new-cagey.db"),
-  )
+
+.. testcode:: viewing-imine-peaks
+  :hide:
+
   print(df)
 
 .. testoutput:: viewing-imine-peaks
@@ -305,6 +278,7 @@ Viewing mass spectrum peaks
   import polars as pl
 
   pl.Config.set_tbl_width_chars(170)
+  pl.Config.set_tbl_cols(-1)
 
   intial_dir = Path.cwd()
   temp_dir = Path(tempfile.mkdtemp()).absolute()
@@ -319,47 +293,12 @@ Viewing mass spectrum peaks
 .. testcode:: viewing-mass-spectrum-peaks
 
   import sqlite3
-  import polars as pl
+  import cagey
+  df = cagey.queries.mass_spectrum_peaks_df(sqlite3.connect("path/to/cagey.db"))
 
-  pl.Config.set_tbl_cols(-1)
-  df = pl.read_database(
-      """
-      SELECT
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          di.name AS di_name,
-          tri.name AS tri_name,
-          mass_spectrum_peaks.tri_count,
-          mass_spectrum_peaks.di_count,
-          mass_spectrum_peaks.adduct,
-          mass_spectrum_peaks.charge,
-          mass_spectrum_peaks.calculated_mz,
-          mass_spectrum_peaks.spectrum_mz,
-          mass_spectrum_peaks.separation_mz,
-          mass_spectrum_peaks.intensity
-      FROM
-          mass_spectrum_peaks
-      LEFT JOIN
-          mass_spectra
-          ON mass_spectrum_peaks.mass_spectrum_id = mass_spectra.id
-      LEFT JOIN
-          reactions
-          ON mass_spectra.reaction_id = reactions.id
-      LEFT JOIN
-          precursors AS di
-          ON reactions.di_name = di.name
-      LEFT JOIN
-          precursors AS tri
-          ON reactions.tri_name = tri.name
-      ORDER BY
-          reactions.experiment,
-          reactions.plate,
-          reactions.formulation_number,
-          mass_spectrum_peaks.spectrum_mz
-      """,
-      sqlite3.connect("/home/lukas/data/cagey/new-cagey.db"),
-  )
+.. testcode:: viewing-mass-spectrum-peaks
+  :hide:
+
   print(df)
 
 .. testoutput:: viewing-mass-spectrum-peaks
