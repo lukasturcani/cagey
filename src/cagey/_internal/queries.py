@@ -34,6 +34,11 @@ class InsertNmrSpectrumError(Exception):
 
 
 def create_tables(connection: Connection) -> None:
+    """Create the tables in the database.
+
+    Parameters:
+        connection: A SQLite connection.
+    """
     script = pkgutil.get_data("cagey", "_internal/sql/create_tables.sql")
     if script is not None:
         connection.executescript(script.decode())
@@ -420,6 +425,13 @@ def insert_precursors(
     *,
     commit: bool = True,
 ) -> None:
+    """Insert precursors into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        precursors: The precursors to insert.
+        commit: Whether to commit the transaction.
+    """
     connection.executemany(
         "INSERT INTO precursors (name, smiles) VALUES (:name, :smiles)",
         map(asdict, precursors),
@@ -434,6 +446,13 @@ def insert_reactions(
     *,
     commit: bool = True,
 ) -> None:
+    """Insert reactions into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        reactions: The reactions to insert.
+        commit: Whether to commit the transaction.
+    """
     connection.executemany(
         """
         INSERT INTO reactions (
@@ -463,6 +482,14 @@ def insert_mass_spectrum(
     *,
     commit: bool = True,
 ) -> None:
+    """Insert a mass spectrum into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        reaction_key: The reaction key.
+        peaks: The mass spectrum peaks.
+        commit: Whether to commit the transaction.
+    """
     cursor = connection.execute(
         """
         INSERT INTO
@@ -521,6 +548,13 @@ def insert_mass_spectrum_topology_assignments(
     *,
     commit: bool = True,
 ) -> None:
+    """Insert mass spectrum topology assignments into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        assignments: The mass spectrum topology assignments.
+        commit: Whether to commit the transaction.
+    """
     connection.executemany(
         """
         INSERT INTO mass_spectrum_topology_assignments (
@@ -541,6 +575,12 @@ def mass_spectrum_peaks(
     connection: Connection,
     reaction_key: ReactionKey,
 ) -> Iterator[Row[MassSpectrumPeak]]:
+    """Get the mass spectrum peaks for a reaction.
+
+    Parameters:
+        connection: A SQLite connection.
+        reaction_key: The reaction key.
+    """
     for (
         id_,
         di_count,
@@ -597,6 +637,12 @@ def reaction_precursors(
     connection: Connection,
     reactions: Sequence[ReactionKey],
 ) -> Iterator[tuple[ReactionKey, Precursors]]:
+    """Get the precursors for a set of reactions.
+
+    Parameters:
+        connection: A SQLite connection.
+        reactions: The reactions.
+    """
     q = ",".join("(?,?,?)" for _ in range(len(reactions)))
     for (
         experiment,
@@ -642,6 +688,14 @@ def insert_nmr_spectrum(
     *,
     commit: bool = True,
 ) -> None:
+    """Insert an NMR spectrum into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        reaction_key: The reaction key.
+        spectrum: The NMR spectrum.
+        commit: Whether to commit the transaction.
+    """
     cursor = connection.execute(
         """
         INSERT INTO
@@ -692,6 +746,16 @@ def insert_turbidity(  # noqa: PLR0913
     *,
     commit: bool = True,
 ) -> None:
+    """Insert turbidity data into the database.
+
+    Parameters:
+        connection: A SQLite connection.
+        reaction_key: The reaction key.
+        dissolved_reference: The dissolved reference.
+        data: A map of times to turbidity values.
+        turbidity_state: The turbidity state.
+        commit: Whether to commit the transaction.
+    """
     reaction = asdict(reaction_key)
     connection.execute(
         """
