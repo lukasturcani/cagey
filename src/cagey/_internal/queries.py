@@ -339,8 +339,9 @@ def turbidity_measurements_df(connection: Connection) -> pl.DataFrame:
     Returns:
         A DataFrame of turbidity measurements.
     """
-    return pl.read_database(
-        """
+    return (
+        pl.read_database(
+            """
       SELECT
           reactions.experiment,
           reactions.plate,
@@ -366,7 +367,12 @@ def turbidity_measurements_df(connection: Connection) -> pl.DataFrame:
           reactions.formulation_number,
           turbidity_measurements.time
       """,
-        connection,
+            connection,
+        )
+        .with_columns(
+            pl.col("time").str.to_datetime(),
+        )
+        .sort(["experiment", "plate", "formulation_number", "time"])
     )
 
 
