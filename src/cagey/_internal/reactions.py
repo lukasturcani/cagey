@@ -11,6 +11,12 @@ from cagey._internal.queries import (
 
 
 def add_precursors(connection: Connection, *, commit: bool = True) -> None:
+    """Add initial precursor data to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     precursors = {
         "Di1": "O=Cc1cccc(C=O)c1",
         "Di2": "CC(C)(C)c1cc(C=O)c(O)c(C=O)c1",
@@ -86,6 +92,12 @@ def add_ab_02_005_data(
     *,
     commit: bool = True,
 ) -> None:
+    """Add reaction data for experiment AB-02-005 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di1", "Di2", "Di3", "Di4", "Di5", "Di6", "Di7", "Di8"),
         tris=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
@@ -119,6 +131,12 @@ def add_ab_02_005_data(
 
 
 def add_ab_02_007_data(connection: Connection, *, commit: bool = True) -> None:
+    """Add reaction data for experiment AB-02-007 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
@@ -160,6 +178,12 @@ def add_ab_02_007_data(connection: Connection, *, commit: bool = True) -> None:
 
 
 def add_ab_02_009_data(connection: Connection, *, commit: bool = True) -> None:
+    """Add reaction data for experiment AB-02-009 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di25", "Di26", "Di27", "Di28", "Di29", "Di30", "Di31", "Di32"),
         tris=("TriL", "TriM", "TriN", "TriO", "TriP", "TriQ"),
