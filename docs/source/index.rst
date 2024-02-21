@@ -275,9 +275,9 @@ Adding new precursors and reactions
   cagey.queries.insert_precursors(
       connection=connection,
       precursors=[
-          cagey.Precursor("DiBro", "BrCCBr"),
-          cagey.Precursor("TriF", "FCC(F)CCF"),
-          cagey.Precursor("TriI", "ICC(I)CCI"),
+          cagey.Precursor("DiBromine", "BrCCBr"),
+          cagey.Precursor("TriFluorine", "FCC(F)CCF"),
+          cagey.Precursor("TriIodine", "ICC(I)CCI"),
       ]
   )
   cagey.queries.insert_reactions(
@@ -287,15 +287,15 @@ Adding new precursors and reactions
               experiment="AB-03-example1",
               plate=1,
               formulation_number=3,
-              di_name="DiBro",
-              tri_name="TriF",
+              di_name="DiBromine",
+              tri_name="TriFluorine",
           ),
           cagey.Reaction(
               experiment="AB-03-example1",
               plate=1,
               formulation_number=4,
-              di_name="DiBro",
-              tri_name="TriI",
+              di_name="DiBromine",
+              tri_name="TriIodine",
           ),
       ]
   )
