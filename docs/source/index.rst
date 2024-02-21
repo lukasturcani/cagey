@@ -357,6 +357,9 @@ Viewing mass spectrum peaks
 
   target.symlink_to(cagey_db)
 
+  import polars as pl
+  pl.Config.set_tbl_width_chars(170)
+
 .. testcode:: viewing-mass-spectrum-peaks
 
   import sqlite3
@@ -423,6 +426,12 @@ Viewing mass spectrum peaks
   │ AB-02-009  ┆ 1     ┆ 46                 ┆ Di30    ┆ TriQ     ┆ 4         ┆ 6        ┆ Na2    ┆ 2      ┆ 1163.556361   ┆ 1163.55862  ┆ 1164.0711     ┆ 209200.0  │
   │ AB-02-009  ┆ 2     ┆ 18                 ┆ Di34    ┆ TriN     ┆ 2         ┆ 3        ┆ H1     ┆ 1      ┆ 1015.542721   ┆ 1015.54603  ┆ 1016.54919    ┆ 156600.0  │
   └────────────┴───────┴────────────────────┴─────────┴──────────┴───────────┴──────────┴────────┴────────┴───────────────┴─────────────┴───────────────┴───────────┘
+
+.. testcleanup:: viewing-mass-spectrum-peaks
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
 
 
 Adding new precursors and reactions
