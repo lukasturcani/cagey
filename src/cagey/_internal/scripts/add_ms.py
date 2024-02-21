@@ -1,6 +1,3 @@
-import pkgutil
-import subprocess
-import tempfile
 import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -72,55 +69,6 @@ def main(  # noqa: PLR0913
     connection.commit()
 
 
-def _to_mzml(
-    machine_data: Path,
-) -> Path:
-    subprocess.run(
-        [  # noqa: S603, S607
-            "docker",
-            "run",
-            "--rm",
-            "--env",
-            "WINEDEBUG=-all",
-            "--volume",
-            f"{machine_data.resolve().parent}:/data",
-            "chambm/pwiz-skyline-i-agree-to-the-vendor-licenses",
-            "wine",
-            "msconvert",
-            str(machine_data.name),
-            "-o",
-            ".",
-        ],
-        check=True,
-        capture_output=True,
-    )
-    return machine_data.parent / f"{machine_data.stem}.mzML"
-
-
-def _mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
-    template = pkgutil.get_data(
-        "cagey", "_internal/scripts/mzmine_input_template.xml"
-    )
-    if template is None:
-        msg = "failed to load mzmine input template"
-        raise RuntimeError(msg)
-    input_file_content = (
-        template.decode()
-        .replace("$INFILE$", str(mzml))
-        .replace("$OUTFILE$", str(mzml.with_suffix("")))
-    )
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".xml", delete=False
-    ) as f:
-        f.write(input_file_content)
-    subprocess.run(
-        [str(mzmine), "-batch", f.name],  # noqa: S603
-        check=True,
-        capture_output=True,
-    )
-    return mzml.with_suffix(".csv")
-
-
 @dataclass(frozen=True, slots=True)
 class MassSpectrumError:
     path: Path
@@ -146,8 +94,8 @@ def _get_mass_spectrum(
 ) -> MassSpectrum | MassSpectrumError:
     try:
         reaction_key, precursors, machine_data = spectrum_data
-        mzml = _to_mzml(machine_data)
-        csv = _mzml_to_csv(mzml, mzmine)
+        mzml = cagey.ms.machine_data_to_mzml(machine_data)
+        csv = cagey.ms.mzml_to_csv(mzml, mzmine)
         return MassSpectrum(
             reaction_key,
             list(

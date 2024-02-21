@@ -4,7 +4,7 @@ from typing import assert_never
 import typer
 from rich.console import Console
 
-from cagey._internal.scripts import cagey_new
+from cagey._internal.scripts import cagey_new, ms
 
 
 class Topic(StrEnum):
@@ -19,6 +19,7 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 app.command(no_args_is_help=True, name="new")(cagey_new.main)
+app.add_typer(ms.app, name="ms")
 
 
 @app.callback()

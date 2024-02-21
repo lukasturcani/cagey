@@ -1,3 +1,6 @@
+import pkgutil
+import subprocess
+import tempfile
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from itertools import product
@@ -285,3 +288,52 @@ def get_topologies(
             mass_spectrum_peak_id=peak.id,
             topology=f"{peak.item.tri_count}+{peak.item.di_count}",
         )
+
+
+def machine_data_to_mzml(
+    machine_data: Path,
+) -> Path:
+    subprocess.run(
+        [  # noqa: S603, S607
+            "docker",
+            "run",
+            "--rm",
+            "--env",
+            "WINEDEBUG=-all",
+            "--volume",
+            f"{machine_data.resolve().parent}:/data",
+            "chambm/pwiz-skyline-i-agree-to-the-vendor-licenses",
+            "wine",
+            "msconvert",
+            str(machine_data.name),
+            "-o",
+            ".",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return machine_data.parent / f"{machine_data.stem}.mzML"
+
+
+def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
+    template = pkgutil.get_data(
+        "cagey", "_internal/scripts/mzmine_input_template.xml"
+    )
+    if template is None:
+        msg = "failed to load mzmine input template"
+        raise RuntimeError(msg)
+    input_file_content = (
+        template.decode()
+        .replace("$INFILE$", str(mzml))
+        .replace("$OUTFILE$", str(mzml.with_suffix("")))
+    )
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".xml", delete=False
+    ) as f:
+        f.write(input_file_content)
+    subprocess.run(
+        [str(mzmine), "-batch", f.name],  # noqa: S603
+        check=True,
+        capture_output=True,
+    )
+    return mzml.with_suffix(".csv")
