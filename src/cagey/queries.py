@@ -19,6 +19,8 @@ from cagey._internal.queries import (
     precursors_df,
     reaction_precursors,
     reactions_df,
+    turbidity_dissolved_references_df,
+    turbidity_measurements_df,
 )
 
 __all__ = [
@@ -40,4 +42,6 @@ __all__ = [
     "precursors_df",
     "reaction_precursors",
     "reactions_df",
+    "turbidity_dissolved_references_df",
+    "turbidity_measurements_df",
 ]

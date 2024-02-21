@@ -93,7 +93,7 @@ ON turbidity_dissolved_references (reaction_id);
 CREATE TABLE IF NOT EXISTS turbidity_measurements (
     id INTEGER PRIMARY KEY,
     reaction_id INTEGER NOT NULL,
-    time REAL NOT NULL,
+    time DATETIME NOT NULL,
     turbidity REAL NOT NULL,
     FOREIGN KEY (reaction_id) REFERENCES reactions (id)
 );

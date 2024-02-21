@@ -389,6 +389,109 @@ Viewing mass spectrum topology assignments
   shutil.rmtree(temp_dir)
   os.chdir(intial_dir)
 
+Viewing turbidity dissolved references
+--------------------------------------
+
+.. testsetup:: viewing-turbidity-dissolved-references
+
+  import os
+  import tempfile
+  from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
+
+  intial_dir = Path.cwd()
+  temp_dir = Path(tempfile.mkdtemp()).absolute()
+  cagey_db = Path(os.environ["CAGEY_DB"]).absolute()
+  os.chdir(temp_dir)
+  target = temp_dir / "path" / "to" / "cagey.db"
+  target.parent.mkdir(parents=True, exist_ok=True)
+
+  target.symlink_to(cagey_db)
+
+.. testcode:: viewing-turbidity-dissolved-references
+
+    import sqlite3
+    import cagey
+    df = cagey.queries.turbidity_dissolved_references_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-turbidity-dissolved-references
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-turbidity-dissolved-references
+
+  shape: (402, 6)
+  ┌────────────┬───────┬────────────────────┬─────────┬──────────┬─────────────────────┐
+  │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name ┆ dissolved_reference │
+  │ ---        ┆ ---   ┆ ---                ┆ ---     ┆ ---      ┆ ---                 │
+  │ str        ┆ i64   ┆ i64                ┆ str     ┆ str      ┆ f64                 │
+  ╞════════════╪═══════╪════════════════════╪═════════╪══════════╪═════════════════════╡
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ Di1     ┆ TriA     ┆ 67.033458           │
+  │ AB-02-005  ┆ 1     ┆ 2                  ┆ Di2     ┆ TriA     ┆ 67.033458           │
+  │ AB-02-005  ┆ 1     ┆ 3                  ┆ Di3     ┆ TriA     ┆ 67.033458           │
+  │ AB-02-005  ┆ 1     ┆ 4                  ┆ Di4     ┆ TriA     ┆ 67.033458           │
+  │ AB-02-005  ┆ 1     ┆ 5                  ┆ Di5     ┆ TriA     ┆ 67.033458           │
+  │ …          ┆ …     ┆ …                  ┆ …       ┆ …        ┆ …                   │
+  │ AB-02-009  ┆ 2     ┆ 34                 ┆ Di34    ┆ TriP     ┆ 26.762018           │
+  │ AB-02-009  ┆ 2     ┆ 35                 ┆ Di21    ┆ TriT     ┆ 26.762018           │
+  │ AB-02-009  ┆ 2     ┆ 41                 ┆ Di33    ┆ TriQ     ┆ 26.762018           │
+  │ AB-02-009  ┆ 2     ┆ 42                 ┆ Di34    ┆ TriQ     ┆ 26.762018           │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ Di21    ┆ TriU     ┆ 26.762018           │
+  └────────────┴───────┴────────────────────┴─────────┴──────────┴─────────────────────┘
+
+.. testcleanup:: viewing-turbidity-dissolved-references
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
+
+Viewing turbidity measurments
+-----------------------------
+
+.. testsetup:: viewing-turbidity-measurments
+
+  import os
+  import tempfile
+  from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
+
+  intial_dir = Path.cwd()
+  temp_dir = Path(tempfile.mkdtemp()).absolute()
+  cagey_db = Path(os.environ["CAGEY_DB"]).absolute()
+  os.chdir(temp_dir)
+  target = temp_dir / "path" / "to" / "cagey.db"
+  target.parent.mkdir(parents=True, exist_ok=True)
+
+  target.symlink_to(cagey_db)
+
+.. testcode:: viewing-turbidity-measurments
+
+    import sqlite3
+    import cagey
+    df = cagey.queries.turbidity_measurements_df(sqlite3.connect("path/to/cagey.db"))
+
+
+.. testcode:: viewing-turbidity-measurments
+  :hide:
+
+  print(df)
+
+
+.. testoutput:: viewing-turbidity-measurments
+
+
+.. testcleanup:: viewing-turbidity-measurments
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
+
+
 
 Adding new precursors and reactions
 -----------------------------------

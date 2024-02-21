@@ -1,6 +1,7 @@
 import pkgutil
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, astuple
+from datetime import datetime
 from sqlite3 import Connection
 
 import polars as pl
@@ -287,6 +288,84 @@ def mass_spectrum_topology_assignments_df(
           reactions.formulation_number,
           mass_spectrum_peaks.spectrum_mz
         """,
+        connection,
+    )
+
+
+def turbidity_dissolved_references_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of turbidity dissolved references.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of turbidity dissolved references.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          turbidity_dissolved_references.dissolved_reference
+      FROM
+          turbidity_dissolved_references
+      LEFT JOIN
+          reactions
+          ON turbidity_dissolved_references.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number
+      """,
+        connection,
+    )
+
+
+def turbidity_measurements_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of turbidity measurements.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of turbidity measurements.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          turbidity_measurements.time,
+          turbidity_measurements.turbidity
+      FROM
+          turbidity_measurements
+      LEFT JOIN
+          reactions
+          ON turbidity_measurements.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          turbidity_measurements.time
+      """,
         connection,
     )
 
@@ -599,7 +678,13 @@ def insert_turbidity(  # noqa: PLR0913
             AND formulation_number = :formulation_number
         """,
         (
-            reaction | {"time": time, "turbidity": turbidity}
+            reaction
+            | {
+                "time": datetime.strptime(
+                    time, "%Y_%m_%d_%H_%M_%S_%f"
+                ).astimezone(),
+                "turbidity": turbidity,
+            }
             for time, turbidity in data.items()
         ),
     )
