@@ -19,8 +19,13 @@ app = typer.Typer(
 
 @app.command(no_args_is_help=True)
 def from_machine_data(  # noqa: PLR0913
-    database: Path,
-    machine_data: Path,
+    database: Annotated[
+        Path,
+        typer.Argument(help="Database file holding reactions and precursors."),
+    ],
+    machine_data: Annotated[
+        Path, typer.Argument(help="Path to raw machine data.")
+    ],
     mzmine: Annotated[
         Path, typer.Option(help="Path to MZmine version 3.4.")
     ] = Path("MZmine"),
@@ -77,8 +82,11 @@ instead print the results to the console.
 
 @app.command(no_args_is_help=True)
 def from_csv(  # noqa: PLR0913
-    database: Path,
-    csv: Path,
+    database: Annotated[
+        Path,
+        typer.Argument(help="Database file holding reactions and precursors."),
+    ],
+    csv: Annotated[Path, typer.Argument(help="Path to csv file.")],
     calculated_peak_tolerance: float = 0.1,
     separation_peak_tolerance: float = 0.1,
     max_ppm_error: float = 10,
