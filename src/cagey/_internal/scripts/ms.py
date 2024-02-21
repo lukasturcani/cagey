@@ -1,4 +1,5 @@
 import sqlite3
+import subprocess
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +11,7 @@ import cagey
 from cagey.queries import Precursors, ReactionKey, Row
 
 app = typer.Typer(
+    help="Mass spectrum analysis.",
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
@@ -35,13 +37,30 @@ instead print the results to the console.
     """
     console = Console()
 
+    has_docker = (
+        subprocess.run(
+            ["/usr/bin/docker", "ps"],  # noqa: S603
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
+    if not has_docker:
+        console.print(
+            "Docker is not running. Please install and start Docker and "
+            "try again."
+        )
+        raise typer.Abort
+
     reaction_key = ReactionKey.from_ms_path(machine_data)
     connection = sqlite3.connect(database)
     ((_, precursors),) = cagey.queries.reaction_precursors(
         connection, [reaction_key]
     )
-    mzml = cagey.ms.machine_data_to_mzml(machine_data)
-    csv = cagey.ms.mzml_to_csv(mzml, mzmine)
+    with console.status("[bold green]Converting machine data to csv..."):
+        mzml = cagey.ms.machine_data_to_mzml(machine_data)
+        csv = cagey.ms.mzml_to_csv(mzml, mzmine)
+    console.print(f"[bold green]:heavy_check_mark: Created csv:[/] {csv}")
 
     console.print(
         _get_table(
@@ -72,7 +91,7 @@ def from_csv(  # noqa: PLR0913
 instead print the results to the console.
     """
     console = Console()
-    reaction_key = ReactionKey.from_ms_path(machine_data)
+    reaction_key = ReactionKey.from_ms_path(csv)
     connection = sqlite3.connect(database)
     ((_, precursors),) = cagey.queries.reaction_precursors(
         connection, [reaction_key]
