@@ -4,6 +4,7 @@
 
 .. autoclass:: {{ objname }}
    :members:
+   :show-inheritance:
 
    {% block methods %}
    {% if methods %}
@@ -25,7 +26,9 @@
 
    .. autosummary::
    {% for item in attributes %}
+      {%- if not item.startswith(('_', 'model_')) %}
       ~{{ name }}.{{ item }}
+      {%- endif -%}
    {%- endfor %}
    {% endif %}
    {% endblock %}

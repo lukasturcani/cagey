@@ -1,11 +1,22 @@
 import polars as pl
 
-from cagey._internal.tables import TurbidState
+from cagey._internal.queries import TurbidState
 
 
 def get_turbid_state(
     turbidities: dict[str, float], dissolved_reference: float
 ) -> TurbidState:
+    """Get the turbidity state of an experiment.
+
+    Parameters:
+        turbidities:
+            Maps a timestamp to a turbidity measurement.
+        dissolved_reference:
+            The turbidity at which the solution is considered dissolved.
+
+    Returns:
+        The turbidity state of the experiment.
+    """
     turbidity = _turbidity_from_json(turbidities)
     turbidity = get_stability_windows(turbidity)
     turbidity = get_aggregated_stability_windows(turbidity)
@@ -20,6 +31,17 @@ def get_turbid_state(
 def get_stability_windows(
     turbidity: pl.LazyFrame,
 ) -> pl.LazyFrame:
+    """Get the stability windows for a turbidity measurement.
+
+    Parameters:
+        turbidity:
+            A DataFrame with columns time and turbidity.
+
+    Returns:
+        A new DataFrame which groups the turbidity measurements into
+        groups of 1 minute. Each group is then assigned a stability
+        based on the mean turbidity and the standard deviation.
+    """
     return (
         _average_turbidity(turbidity)
         .with_columns(
@@ -40,6 +62,17 @@ def get_stability_windows(
 def get_aggregated_stability_windows(
     turbidity: pl.LazyFrame,
 ) -> pl.LazyFrame:
+    """Join adjacent windows with the same stability label.
+
+    Parameters:
+        turbidity:
+            A DataFrame with rows representing 1 minute long windows
+            each labeled according to stability.
+
+    Returns:
+        A new DataFrame which joins adjacent stability windows if
+        they have the same stability.
+    """
     return (
         turbidity.group_by("group")
         .agg(

@@ -32,7 +32,10 @@ check:
   ( set -x; pytest --cov=src --cov-report term-missing )
 
   echo
-  ( set -x; make -C docs doctest )
+  ( set -x; CAGEY_DB="../data/cagey.db" make -C docs doctest )
+
+  echo
+  ( set -x; sqlfluff lint ./src/cagey/_internal/sql )
 
   test $error = 0
 

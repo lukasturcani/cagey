@@ -1,67 +1,39 @@
-import argparse
 import json
+from collections.abc import Sequence
 from pathlib import Path
+from sqlite3 import Connection
 from typing import TypedDict
 
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlmodel.pool import StaticPool
-from tqdm import tqdm
+from rich.progress import Progress, TaskID
 
 import cagey
-from cagey import (
-    Reaction,
-    Turbidity,
-    TurbidityDissolvedReference,
-    TurbidityMeasurement,
-)
+from cagey import ReactionKey
 
 
-def main() -> None:
-    args = _parse_args()
-    engine = create_engine(
-        f"sqlite:///{args.database}",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        for path in tqdm(args.data, desc="adding turbidity data"):
-            data = _read_json(path)
-            dissolved_reference = data["turbidity_dissolved_reference"]
-            reaction_query = select(Reaction).where(
-                Reaction.experiment == data["experiment"],
-                Reaction.plate == data["plate"],
-                Reaction.formulation_number == data["formulation_number"],
-            )
-            reaction = session.exec(reaction_query).one()
-            session.add(
-                Turbidity(
-                    reaction_id=reaction.id,
-                    state=cagey.turbidity.get_turbid_state(
-                        data["turbidity_data"], dissolved_reference
-                    ),
-                )
-            )
-            session.add(
-                TurbidityDissolvedReference(
-                    reaction_id=reaction.id,
-                    dissolved_reference=dissolved_reference,
-                )
-            )
-            session.add_all(
-                TurbidityMeasurement(
-                    reaction_id=reaction.id, time=time, turbidity=turbidity
-                )
-                for time, turbidity in data["turbidity_data"].items()
-            )
-        session.commit()
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("database", type=Path)
-    parser.add_argument("data", type=Path, nargs="+")
-    return parser.parse_args()
+def main(
+    connection: Connection,
+    data_files: Sequence[Path],
+    progress: Progress,
+    task_id: TaskID,
+) -> None:
+    progress.start_task(task_id)
+    for path in progress.track(data_files, task_id=task_id):
+        data = _read_json(path)
+        dissolved_reference = data["turbidity_dissolved_reference"]
+        cagey.queries.insert_turbidity(
+            connection,
+            ReactionKey(
+                experiment=data["experiment"],
+                plate=data["plate"],
+                formulation_number=data["formulation_number"],
+            ),
+            data["turbidity_dissolved_reference"],
+            data["turbidity_data"],
+            cagey.turbidity.get_turbid_state(
+                data["turbidity_data"], dissolved_reference
+            ),
+        )
+    connection.commit()
 
 
 class TurbidityData(TypedDict):

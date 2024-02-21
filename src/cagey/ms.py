@@ -1,8 +1,15 @@
 """Mass spectrum analysis."""
 
-from cagey._internal.ms import get_spectrum, get_topologies
+from cagey._internal.ms import (
+    get_peaks,
+    get_topologies,
+    machine_data_to_mzml,
+    mzml_to_csv,
+)
 
 __all__ = [
-    "get_spectrum",
+    "get_peaks",
     "get_topologies",
+    "machine_data_to_mzml",
+    "mzml_to_csv",
 ]

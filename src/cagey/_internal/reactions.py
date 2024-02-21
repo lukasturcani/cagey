@@ -1,12 +1,22 @@
 from collections.abc import Iterable
 from itertools import product
+from sqlite3 import Connection
 
-from sqlmodel import Session
+from cagey._internal.queries import (
+    Precursor,
+    Reaction,
+    insert_precursors,
+    insert_reactions,
+)
 
-from cagey._internal.tables import Precursor, Reaction
 
+def add_precursors(connection: Connection, *, commit: bool = True) -> None:
+    """Add initial precursor data to the database.
 
-def add_precursors(session: Session, *, commit: bool = True) -> None:
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     precursors = {
         "Di1": "O=Cc1cccc(C=O)c1",
         "Di2": "CC(C)(C)c1cc(C=O)c(O)c(C=O)c1",
@@ -67,79 +77,93 @@ def add_precursors(session: Session, *, commit: bool = True) -> None:
         "TriT": "O=Cc1c(O)c(C=O)c(O)c(C=O)c1O",
         "TriU": "O=Cc1ccc(C=Cc2cc(C=Cc3ccc(C=O)cc3)cc(C=Cc3ccc(C=O)cc3)c2)cc1",
     }
-    session.add_all(
-        Precursor(name=name, smiles=smiles)
-        for name, smiles in precursors.items()
+    insert_precursors(
+        connection,
+        precursors=(
+            Precursor(name=name, smiles=smiles)
+            for name, smiles in precursors.items()
+        ),
+        commit=commit,
     )
-    if commit:
-        session.commit()
 
 
 def add_ab_02_005_data(
-    session: Session,
+    connection: Connection,
     *,
     commit: bool = True,
 ) -> None:
+    """Add reaction data for experiment AB-02-005 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di1", "Di2", "Di3", "Di4", "Di5", "Di6", "Di7", "Di8"),
         tris=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
         experiment="AB-02-005",
         plate=1,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di17", "Di18", "Di19", "Di20", "Di21", "Di22", "Di23", "Di24"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriL"),
         experiment="AB-02-005",
         plate=2,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di9", "Di10", "Di11", "Di12", "Di13", "Di14", "Di15", "Di16"),
         tris=("TriA", "TriB", "TriC", "TriD", "TriE", "TriF"),
         experiment="AB-02-005",
         plate=3,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di17", "Di18", "Di19", "Di20", "Di21", "Di22", "Di23", "Di24"),
         tris=("TriM", "TriN", "TriO", "TriP", "TriQ", "TriR"),
         experiment="AB-02-005",
         plate=4,
-        session=session,
+        connection=connection,
     )
     if commit:
-        session.commit()
+        connection.commit()
 
 
-def add_ab_02_007_data(session: Session, *, commit: bool = True) -> None:
+def add_ab_02_007_data(connection: Connection, *, commit: bool = True) -> None:
+    """Add reaction data for experiment AB-02-007 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
         experiment="AB-02-007",
         plate=1,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
         experiment="AB-02-007",
         plate=2,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di18", "Di19", "Di20", "Di22", "Di23", "Di24", "Di25", "Di26"),
         tris=("TriS", "TriT", "TriU"),
         experiment="AB-02-007",
         plate=3,
-        session=session,
+        connection=connection,
     )
     _add_data_helper(
         dis=("Di27", "Di28", "Di29", "Di30", "Di31", "Di32", "Di33", "Di34"),
         tris=("TriS", "TriT", "TriU"),
         experiment="AB-02-007",
         plate=3,
-        session=session,
+        connection=connection,
         start_tri_index=3,
     )
     _add_data_helper(
@@ -147,21 +171,28 @@ def add_ab_02_007_data(session: Session, *, commit: bool = True) -> None:
         tris=("TriG", "TriH", "TriI", "TriJ", "TriK", "TriR"),
         experiment="AB-02-007",
         plate=4,
-        session=session,
+        connection=connection,
     )
     if commit:
-        session.commit()
+        connection.commit()
 
 
-def add_ab_02_009_data(session: Session, *, commit: bool = True) -> None:
+def add_ab_02_009_data(connection: Connection, *, commit: bool = True) -> None:
+    """Add reaction data for experiment AB-02-009 to the database.
+
+    Parameters:
+        connection: The SQLite database connection.
+        commit: Whether to commit the transaction.
+    """
     _add_data_helper(
         dis=("Di25", "Di26", "Di27", "Di28", "Di29", "Di30", "Di31", "Di32"),
         tris=("TriL", "TriM", "TriN", "TriO", "TriP", "TriQ"),
         experiment="AB-02-009",
         plate=1,
-        session=session,
+        connection=connection,
     )
-    session.add_all(
+    insert_reactions(
+        connection,
         [
             Reaction(
                 experiment="AB-02-009",
@@ -289,10 +320,11 @@ def add_ab_02_009_data(session: Session, *, commit: bool = True) -> None:
                 di_name="Di21",
                 tri_name="TriU",
             ),
-        ]
+        ],
+        commit=False,
     )
     if commit:
-        session.commit()
+        connection.commit()
 
 
 def _add_data_helper(  # noqa: PLR0913
@@ -300,18 +332,22 @@ def _add_data_helper(  # noqa: PLR0913
     tris: Iterable[str],
     experiment: str,
     plate: int,
-    session: Session,
+    connection: Connection,
     start_tri_index: int = 0,
 ) -> None:
-    session.add_all(
-        Reaction(
-            experiment=experiment,
-            plate=plate,
-            formulation_number=(di_index + 1) + (tri_index * 8),
-            di_name=di,
-            tri_name=tri,
-        )
-        for (di_index, di), (tri_index, tri) in product(
-            enumerate(dis), enumerate(tris, start_tri_index)
-        )
+    insert_reactions(
+        connection,
+        reactions=(
+            Reaction(
+                experiment=experiment,
+                plate=plate,
+                formulation_number=(di_index + 1) + (tri_index * 8),
+                di_name=di,
+                tri_name=tri,
+            )
+            for (di_index, di), (tri_index, tri) in product(
+                enumerate(dis), enumerate(tris, start_tri_index)
+            )
+        ),
+        commit=False,
     )
