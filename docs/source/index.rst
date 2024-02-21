@@ -510,6 +510,64 @@ Viewing turbidity measurments
   shutil.rmtree(temp_dir)
   os.chdir(intial_dir)
 
+Viewing turbidity states
+------------------------
+
+.. testsetup:: viewing-turbidity-states
+
+  import os
+  import tempfile
+  from pathlib import Path
+  import polars as pl
+
+  pl.Config.set_tbl_width_chars(170)
+
+  intial_dir = Path.cwd()
+  temp_dir = Path(tempfile.mkdtemp()).absolute()
+  cagey_db = Path(os.environ["CAGEY_DB"]).absolute()
+  os.chdir(temp_dir)
+  target = temp_dir / "path" / "to" / "cagey.db"
+  target.parent.mkdir(parents=True, exist_ok=True)
+
+  target.symlink_to(cagey_db)
+
+.. testcode:: viewing-turbidity-states
+
+    import sqlite3
+    import cagey
+    df = cagey.queries.turbidity_states_df(sqlite3.connect("path/to/cagey.db"))
+
+.. testcode:: viewing-turbidity-states
+  :hide:
+
+  print(df)
+
+.. testoutput:: viewing-turbidity-states
+
+  shape: (402, 6)
+  ┌────────────┬───────┬────────────────────┬─────────┬──────────┬────────┐
+  │ experiment ┆ plate ┆ formulation_number ┆ di_name ┆ tri_name ┆ state  │
+  │ ---        ┆ ---   ┆ ---                ┆ ---     ┆ ---      ┆ ---    │
+  │ str        ┆ i64   ┆ i64                ┆ str     ┆ str      ┆ str    │
+  ╞════════════╪═══════╪════════════════════╪═════════╪══════════╪════════╡
+  │ AB-02-005  ┆ 1     ┆ 1                  ┆ Di1     ┆ TriA     ┆ turbid │
+  │ AB-02-005  ┆ 1     ┆ 2                  ┆ Di2     ┆ TriA     ┆ turbid │
+  │ AB-02-005  ┆ 1     ┆ 3                  ┆ Di3     ┆ TriA     ┆ turbid │
+  │ AB-02-005  ┆ 1     ┆ 4                  ┆ Di4     ┆ TriA     ┆ turbid │
+  │ AB-02-005  ┆ 1     ┆ 5                  ┆ Di5     ┆ TriA     ┆ turbid │
+  │ …          ┆ …     ┆ …                  ┆ …       ┆ …        ┆ …      │
+  │ AB-02-009  ┆ 2     ┆ 34                 ┆ Di34    ┆ TriP     ┆ turbid │
+  │ AB-02-009  ┆ 2     ┆ 35                 ┆ Di21    ┆ TriT     ┆ turbid │
+  │ AB-02-009  ┆ 2     ┆ 41                 ┆ Di33    ┆ TriQ     ┆ turbid │
+  │ AB-02-009  ┆ 2     ┆ 42                 ┆ Di34    ┆ TriQ     ┆ turbid │
+  │ AB-02-009  ┆ 2     ┆ 43                 ┆ Di21    ┆ TriU     ┆ turbid │
+  └────────────┴───────┴────────────────────┴─────────┴──────────┴────────┘
+
+.. testcleanup:: viewing-turbidity-states
+
+  import shutil
+  shutil.rmtree(temp_dir)
+  os.chdir(intial_dir)
 
 
 Adding new precursors and reactions

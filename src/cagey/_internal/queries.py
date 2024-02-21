@@ -376,6 +376,44 @@ def turbidity_measurements_df(connection: Connection) -> pl.DataFrame:
     )
 
 
+def turbidity_states_df(connection: Connection) -> pl.DataFrame:
+    """Return a DataFrame of turbidity states.
+
+    Parameters:
+        connection: A SQLite connection.
+
+    Returns:
+        A DataFrame of turbidity states.
+    """
+    return pl.read_database(
+        """
+      SELECT
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number,
+          di.name AS di_name,
+          tri.name AS tri_name,
+          turbidities.state
+      FROM
+          turbidities
+      LEFT JOIN
+          reactions
+          ON turbidities.reaction_id = reactions.id
+      LEFT JOIN
+          precursors AS di
+          ON reactions.di_name = di.name
+      LEFT JOIN
+          precursors AS tri
+          ON reactions.tri_name = tri.name
+      ORDER BY
+          reactions.experiment,
+          reactions.plate,
+          reactions.formulation_number
+      """,
+        connection,
+    )
+
+
 def insert_precursors(
     connection: Connection,
     precursors: Iterable[Precursor],
