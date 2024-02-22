@@ -20,13 +20,13 @@ check:
   trap error=1 ERR
 
   echo
-  (set -x; ruff . )
+  (set -x; ruff src/ tests/ )
 
   echo
-  ( set -x; ruff format --check . )
+  ( set -x; ruff format --check src/ tests/ )
 
   echo
-  ( set -x; mypy . )
+  ( set -x; mypy src/ tests/ )
 
   echo
   ( set -x; pytest --cov=src --cov-report term-missing )

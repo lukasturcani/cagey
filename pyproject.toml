@@ -10,7 +10,7 @@ maintainers = [
 
 dependencies = [
   "polars[connectorx,pyarrow]",
-  "nmrglue@git+https://github.com/jjhelmus/nmrglue",
+  "nmrglue",
   "pyopenms",
   "rdkit",
   "notebook",
