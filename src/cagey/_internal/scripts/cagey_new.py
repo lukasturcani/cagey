@@ -93,6 +93,7 @@ def main(
         turbidity_data = tuple(data.glob("turbidity/**/turbidity_data.json"))
         turbidity_task = progress.add_task(
             "[green]Adding turbidity",
+            total=len(turbidity_data),
             start=False,
         )
         _add_reactions(
