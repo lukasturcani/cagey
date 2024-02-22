@@ -15,7 +15,6 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-import cagey
 from cagey import ReactionKey
 from cagey._internal.scripts import add_ms, add_nmr, add_turbidity
 
