@@ -1,3 +1,4 @@
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -54,6 +55,28 @@ class ReactionKey:
         title = title_file.read_text()
         experiment, plate, formulation_number = title.split("_")
         return ReactionKey(experiment, int(plate), int(formulation_number))
+
+    @staticmethod
+    def from_json_file(json_file: Path) -> "ReactionKey":
+        """Create from a JSON file.
+
+        The JSON file should contain the ``"experiment"``,
+        ``"plate"``, and ``"formulation_number"`` keys.
+
+        Parameters:
+            json_file:
+                The path to the JSON file.
+
+        Returns:
+            A reaction key.
+        """
+        with json_file.open() as file:
+            data = json.load(file)
+        return ReactionKey(
+            experiment=data["experiment"],
+            plate=data["plate"],
+            formulation_number=data["formulation_number"],
+        )
 
 
 @dataclass(frozen=True, slots=True)
