@@ -13,9 +13,7 @@ dependencies = [
   "nmrglue",
   "pyopenms",
   "rdkit",
-  "notebook",
   "plotly",
-  "ipywidgets",
   "typer[all]",
   "rich",
 ]
