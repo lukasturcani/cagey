@@ -13,7 +13,6 @@ dependencies = [
   "nmrglue",
   "pyopenms",
   "rdkit",
-  "plotly",
   "typer[all]",
   "rich",
 ]
