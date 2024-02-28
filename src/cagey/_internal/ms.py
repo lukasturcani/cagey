@@ -367,6 +367,7 @@ def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     Returns:
         The path to the csv file.
     """
+    mzml = mzml.resolve()
     template = pkgutil.get_data(
         "cagey", "_internal/scripts/mzmine_input_template.xml"
     )
