@@ -368,6 +368,7 @@ def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
         The path to the csv file.
     """
     mzml = mzml.resolve()
+
     template = pkgutil.get_data(
         "cagey", "_internal/scripts/mzmine_input_template.xml"
     )
@@ -381,10 +382,19 @@ def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     )
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".xml", delete=False
-    ) as f:
-        f.write(input_file_content)
+    ) as input_file:
+        input_file.write(input_file_content)
+
+    config = pkgutil.get_data("cagey", "_internal/mzmine3.conf")
+    if config is None:
+        msg = "failed to load mzmine configuration"
+        raise RuntimeError(msg)
+    with tempfile.NamedTemporaryFile(
+        encoding="utf-8", mode="w", suffix=".conf", delete=False
+    ) as config_file:
+        config_file.write(config.decode())
     subprocess.run(
-        [str(mzmine), "-batch", f.name],  # noqa: S603
+        [str(mzmine), "-batch", input_file.name, "--pref", config_file.name],  # noqa: S603
         check=True,
         capture_output=True,
     )
