@@ -385,9 +385,7 @@ def mzml_to_csv(mzml: Path, mzmine: Path) -> Path:
     ) as input_file:
         input_file.write(input_file_content)
 
-    config = pkgutil.get_data(
-        "cagey", "_internal/mzmine3.conf"
-    )
+    config = pkgutil.get_data("cagey", "_internal/mzmine3.conf")
     if config is None:
         msg = "failed to load mzmine configuration"
         raise RuntimeError(msg)
